@@ -2,7 +2,7 @@
 opentaxjs is a proposed JavaScript library designed to handle tax calculations based on predefined rules. It allows developers to implement tax logic in their applications easily. For now, this is primarily designed for the Philippine tax system, but it can be extended to support other tax systems as well.
 
 ## Motivation
-Stumbling upon the [tax directory subsite of BetterGov.ph](https://taxdirectory.bettergov.ph/), I saw gaps and inconsistencies in the information provided but also with the tax calculation feature. This is not an isolated problem however as other sites in this space do also suffer the same set of problems with each of them have their own set of controls and knobs in order to calculate the same type of tax. This also poses problems in terms of accuracy and testability.
+Stumbling upon the [tax directory subsite of BetterGov.ph](https://taxdirectory.bettergov.ph/), I saw gaps and inconsistencies in the information provided but also with the tax calculation feature. This is not an isolated problem as other sites in this space do also suffer the same set of problems with each having their own set of controllable knobs in order to calculate the same type of tax. This also poses problems in terms of accuracy and testability.
 
 opentaxjs aims to solve that by providing a unified approach to tax calculations and documentation through the use of rules-based approach that can be easily shared and reused across different applications. This will help ensure consistency in tax calculations and make it easier for developers to implement tax calculation features in their applications.
 
