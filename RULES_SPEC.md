@@ -9,7 +9,7 @@ This document outlines the rules and structure for the opentaxjs rules file. Rul
 4. **Language and application-agnostic**: While the initial implementation is in JavaScript, it should be able to be adapted for use in other programming languages and applications beyond tax calculations (eg. generating tax documentations, automated tax filings, etc.)
 
 ## Disclaimer: It is NOT a perfect tax calculation format.
-- It is designed to use existing infrastructure as possible such as the use of JSON, which is built into JavaScript and is available in many other programming languages.
+- It is designed to use existing infrastructure as much as possible such as the use of JSON, which is built into JavaScript and is available in many other programming languages.
 - It does not cover all possible tax scenarios and rules, but it provides a foundation that can be extended to cover more complex cases.
 - While we try to make it as human-readable as possible, it does not guarantee that non-technical users will be able to grasp and modify the rules without assistance. It is still recommended to have a basic understanding of the JSON data language to effectively work with this format.
 
@@ -157,7 +157,7 @@ Variables declared in the `inputs` and `outputs` are using [JSON Schema](https:/
 }
 ```
 
-Special variables are **cannot** be redeclared in the rules file and will be thrown an error if attempted. They are predefined variables that are used in the calculations and flow of the rules file.
+Special variables **cannot** be redeclared in the rules file and will be thrown an error if attempted. They are predefined variables that are used in the calculations and flow of the rules file.
 
 ### Referencing variables
 For inputs and outputs, you can reference them directly by their name. For example, to reference the `gross_income` input variable, simply use `gross_income`.
@@ -197,7 +197,7 @@ Each filing schedule has the following properties:
 
 Conditional rules allows you to run specific operations or schedules based on certain conditions. This is useful for handling different scenarios in tax calculations, such as different tax rates for different income levels or requirement-specific cases.
 
-At its core, a conditional rule is an `object` that contains the expression to be evaluated and the expected value to compare against by explicitly telling the operator to use and the value to compare. For example:
+At its core, a conditional rule is an `object` that contains the expression to be evaluated and the expected value to compare against, by explicitly telling the operator to use and the value to compare. For example:
 
 ```json
 "cummulative_gross_income": {
