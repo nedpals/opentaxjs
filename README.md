@@ -2,9 +2,9 @@
 opentaxjs is a proposed JavaScript library designed to handle tax calculations based on predefined rules. It allows developers to implement tax logic in their applications easily. For now, this is primarily designed for the Philippine tax system, but it can be extended to support other tax systems as well.
 
 ## Motivation
-Stumbling upon the [tax directory subsite of BetterGov.ph](https://taxdirectory.bettergov.ph/), I saw gaps and inconsistencies in the information provided but also with the tax calculation feature. This is not an isolated problem as other sites in this space do also suffer the same set of problems with each having their own set of controllable knobs in order to calculate the same type of tax. This also poses problems in terms of accuracy and testability.
+Stumbling upon the [tax directory subsite of BetterGov.ph](https://taxdirectory.bettergov.ph/), I noticed significant gaps and inconsistencies in its tax calculation feature. This is not an isolated issue; many similar websites and applications force developers to implement their own custom logic, which leads to problems with accuracy, consistency, and testability.
 
-opentaxjs aims to solve that by providing a unified approach to tax calculations and documentation through the use of rules-based approach that can be easily shared and reused across different applications. This will help ensure consistency in tax calculations and make it easier for developers to implement tax calculation features in their applications.
+opentaxjs solves this by providing a unified, rules-based library for Philippine tax calculations. The goal is to provide a single, well-tested, and shareable set of rules so that developers no longer need to reinvent the wheel. This ensures calculations are accurate and makes it easier to implement and maintain tax features in any application.
 
 ## Project Goals
 The project aims to:
@@ -18,8 +18,8 @@ This project **DOES NOT** aim to:
 2. Replace official tax filing systems or services.
 3. Handle complex tax scenarios that require legal or financial advice.
 
-## Project Status
-The project is still in its early stages of development. I am currently working on the rules file format specification which can be found in the [RULES_SPEC.md](RULES_SPEC.md) file.
+## Current Status
+The project is still in its early stages of development. I am currently working on the rules file format specification which can be found in the [RULES_SPEC.md](RULES_SPEC.md) file. I would love to get some help improving it in order to cover the different tax types and scenarios under the current tax system before implementing the library.
 
 ## Proposed API
 
