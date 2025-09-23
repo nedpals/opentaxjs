@@ -102,7 +102,11 @@ A complete rule is a JSON object containing all the components needed for tax ca
 {
   "$version": "1.0.0",
   "name": "Income Tax",
-  "law_basis": "Republic Act No. 8424 (Tax Reform Act of 1997)",
+  "references": [
+    "Republic Act No. 8424 (Tax Reform Act of 1997)",
+    "https://www.bir.gov.ph/index.php/tax-information/individual-income-tax.html",
+    "BIR Revenue Regulations No. 2-98"
+  ],
   "effective_from": "2024-01-01",
   "jurisdiction": "PH",
   "taxpayer_type": "INDIVIDUAL",
@@ -300,7 +304,7 @@ A rule file contains these main sections:
 #### Metadata Properties
 - **`$version`**: Format version for compatibility checking
 - **`name`**: Human-readable rule identifier
-- **`law_basis`**: Legal foundation reference
+- **`references`**: Array of legal citations and references (statutes, regulations, URLs, etc.)
 - **`effective_from`/`effective_to`**: Date validity range (ISO format)
 - **`jurisdiction`**: Geographic scope (e.g., "PH", "US")
 - **`taxpayer_type`**: Applicable taxpayer category ("INDIVIDUAL", "CORPORATION", etc.)
