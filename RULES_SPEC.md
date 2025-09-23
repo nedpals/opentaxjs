@@ -1,6 +1,16 @@
 # opentaxjs Rules Specification
 
-This document outlines the rules and structure for the opentaxjs rules file. Rules are a set of instructions that define how tax calculations should be performed.
+> This document is still a work in progress.
+
+This specification defines a standardized, human-readable format for expressing tax calculation rules that can be consistently implemented across different programming languages and applications.
+
+### Target Audience
+
+This specification is primarily intended for **implementers and contributors** to the opentaxjs ecosystem:
+- **Library implementers** building opentaxjs rule engines in various programming languages
+- **Rule authors** creating and maintaining tax calculation rules for specific jurisdictions
+- **Contributors** developing tooling, validation, and supporting infrastructure for the opentaxjs format
+- **Developers** integrating opentaxjs into their applications
 
 ## Table of Contents
 
@@ -8,9 +18,10 @@ This document outlines the rules and structure for the opentaxjs rules file. Rul
 2. [Features and Goals](#2-features-and-goals)
 3. [Disclaimer](#3-disclaimer)
 4. [Core Concepts](#4-core-concepts)
-   - 4.1. [Variables](#41-variables)
-   - 4.2. [Constants](#42-constants)
-   - 4.3. [Tables](#43-tables)
+   - 4.1. [Rules](#41-rules)
+   - 4.2. [Variables](#42-variables)
+   - 4.3. [Constants](#43-constants)
+   - 4.4. [Tables](#44-tables)
 5. [Rules Format Structure](#5-rules-format-structure)
 6. [Variable System](#6-variable-system)
    - 6.1. [Variable Declaration](#61-variable-declaration)
@@ -44,7 +55,11 @@ In short, the opentaxjs rules format is designed to cover as many tax scenarios 
 
 ## 4. Core Concepts
 
-### 4.1. Variables
+### 4.1. Rules
+
+Rules are complete, self-contained JSON documents that define how to calculate taxes for a specific jurisdiction, taxpayer type, and tax category. Each rule encompasses the entire tax calculation workflow—from input validation and constant definitions to mathematical operations, conditional logic, progressive tax brackets, and filing requirements. Rules serve as the authoritative source of tax calculation logic, separate from application code.
+
+### 4.2. Variables
 
 Variables are containers that hold values for calculations. They can be categorized into three types based on their source/authority:
 
@@ -54,11 +69,11 @@ Variables are containers that hold values for calculations. They can be categori
 
 3. **Calculated Values** (No Prefix): These are values computed during the calculation flow, including both user-defined outputs and system-defined special variables. They represent data from the rule calculation domain (e.g., `taxable_income`, `liability`).
 
-### 4.2. Constants
+### 4.3. Constants
 
 Constants are fixed values that are used throughout the rule set. They are defined once in the `constants` object and can be referenced in operations and conditions. Constants make rules more maintainable by centralizing values that may change when laws are updated.
 
-### 4.3. Tables
+### 4.4. Tables
 
 Tables define structured data used for calculations, primarily progressive tax brackets and lookup tables. They provide a way to organize complex data structures that can be referenced in operations.
 
