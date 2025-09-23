@@ -1,27 +1,154 @@
 # opentaxjs Rules Specification
 
-This document outlines the rules and structure for the opentaxjs rules file. Rules are a set of instructions that define how tax calculations should be performed.
+> This document is still a work in progress.
 
-## Features
+This specification defines a standardized, human-readable format for expressing tax calculation rules that can be consistently implemented across different programming languages and applications.
+
+### Target Audience
+
+This specification is primarily intended for **implementers and contributors** to the opentaxjs ecosystem:
+- **Library implementers** building opentaxjs rule engines in various programming languages
+- **Rule authors** creating and maintaining tax calculation rules for specific jurisdictions
+- **Contributors** developing tooling, validation, and supporting infrastructure for the opentaxjs format
+- **Developers** integrating opentaxjs into their applications
+
+## Table of Contents
+
+1. [Overview](#1-overview)
+2. [Features and Goals](#2-features-and-goals)
+3. [Disclaimer](#3-disclaimer)
+4. [Core Concepts](#4-core-concepts)
+   - 4.1. [Rules](#41-rules)
+   - 4.2. [Variables](#42-variables)
+   - 4.3. [Constants](#43-constants)
+   - 4.4. [Tables](#44-tables)
+5. [Rules Format Structure](#5-rules-format-structure)
+6. [Variable System](#6-variable-system)
+   - 6.1. [Variable Declaration](#61-variable-declaration)
+   - 6.2. [Variable Referencing System](#62-variable-referencing-system)
+7. [Filing Schedules](#7-filing-schedules)
+8. [Conditional Rules](#8-conditional-rules)
+   - 8.1. [Operators](#81-operators)
+   - 8.2. [Default Cases](#82-default-cases)
+9. [Expressions](#9-expressions)
+10. [Operations](#10-operations)
+    - 10.1. [Operation Types](#101-operation-types)
+    - 10.2. [Operation Best Practices](#102-operation-best-practices)
+11. [Standard Library](#11-standard-library)
+    - 11.1. [Predefined Constants](#111-predefined-constants)
+    - 11.2. [Predefined Variables](#112-predefined-variables)
+    - 11.3. [Built-in Functions](#113-built-in-functions)
+12. [Implementation Guidelines](#12-implementation-guidelines)
+    - 12.1. [Grammar](#121-grammar)
+    - 12.2. [Implementation Philosophy](#122-implementation-philosophy)
+
+## 1. Overview
+
+The opentaxjs rules format is a JSON-based specification for expressing tax calculations in a standardized, declarative manner. This specification covers the complete structure and syntax needed to create tax calculation rules that are portable across different implementations and programming languages.
+
+This document is organized into conceptual sections that build upon each other:
+- **Core concepts** introduce the fundamental building blocks (rules, variables, constants, tables)
+- **Structural sections** detail the JSON format and organization
+- **Operational sections** explain how calculations flow through conditions, expressions, and operations
+- **Practical sections** cover filing schedules and implementation best practices
+
+## 2. Features and Goals
+
 1. **Human-readable while still machine-readable**: It should be designed to be easily understandable and modifiable by humans, while also being structured in a way that machines can easily parse and execute the rules.
 2. **Auditable**: The rules should be structured in a way that allows for easy auditing and verification of the tax calculations, ensuring transparency and compliance with tax regulations.
 3. **Extensible**: It should handle the different rules and scenarios that may arise in tax calculations, allowing for future extensions and modifications.
 4. **Language and application-agnostic**: While the initial implementation is in JavaScript, it should be able to be adapted for use in other programming languages and applications beyond tax calculations (eg. generating tax documentations, automated tax filings, etc.)
 
-## Disclaimer: It is NOT a perfect tax calculation format.
+## 3. Disclaimer
+
+### It is NOT a perfect tax calculation format.
+
 - It is designed to use existing infrastructure as much as possible such as the use of JSON, which is built into JavaScript and is available in many other programming languages.
 - It does not cover all possible tax scenarios and rules, but it provides a foundation that can be extended to cover more complex cases.
 - While we try to make it as human-readable as possible, it does not guarantee that non-technical users will be able to grasp and modify the rules without assistance. It is still recommended to have a basic understanding of the JSON data language to effectively work with this format.
 
 In short, the opentaxjs rules format is designed to cover as many tax scenarios as possible in the most accessible way we can.
 
-## Rules Format
-> DISCLAIMER: This is not the actual calculation logic but only to demonstrate the kitchen sink features that is defined in the format.
+## 4. Core Concepts
+
+### 4.1. Rules
+
+Rules are complete, self-contained JSON documents that define how to calculate taxes for a specific jurisdiction, taxpayer type, and tax category. Each rule encompasses the entire tax calculation workflow—from input validation and constant definitions to mathematical operations, conditional logic, progressive tax brackets, and filing requirements. Rules serve as the authoritative source of tax calculation logic, separate from application code.
+
+### 4.2. Variables
+
+Variables are containers that hold values for calculations. They can be categorized into three types based on their source/authority:
+
+1. **Inputs** (`$` Prefix): These are user-provided values that the taxpayer supplies when calculating tax. They represent data from the taxpayer's domain and are defined in the `inputs` section (e.g., `$gross_income`).
+
+2. **Constants** (`$$` Prefix): These are law-defined fixed values that come from tax regulations and remain the same across calculations. They represent data from the legal/regulatory domain and are defined in the `constants` section (e.g., `$$tax_exempt_threshold`).
+
+3. **Calculated Values** (No Prefix): These are values computed during the calculation flow, including both user-defined outputs and system-defined special variables. They represent data from the rule calculation domain (e.g., `taxable_income`, `liability`).
+
+### 4.3. Constants
+
+Constants are fixed values that are used throughout the rule set. They are defined once in the `constants` object and can be referenced in operations and conditions. Constants make rules more maintainable by centralizing values that may change when laws are updated.
+
+### 4.4. Tables
+
+Tables define structured data used for calculations, primarily progressive tax brackets and lookup tables. They provide a way to organize complex data structures that can be referenced in operations.
+
+## 5. Rules Format Structure
+
+A complete rule is a JSON object containing all the components needed for tax calculation. The following example demonstrates the key structure and features:
+
+> **Example Note**: This is a demonstration of the format's capabilities, not actual calculation logic.
 
 ```json
 {
   "$version": "1.0.0",
   "name": "Income Tax",
+  "references": [
+    "Republic Act No. 8424 (Tax Reform Act of 1997)",
+    "https://www.bir.gov.ph/index.php/tax-information/individual-income-tax.html",
+    "BIR Revenue Regulations No. 2-98"
+  ],
+  "effective_from": "2024-01-01",
+  "jurisdiction": "PH",
+  "taxpayer_type": "INDIVIDUAL",
+  "author": "Bureau of Internal Revenue",
+  "constants": {
+    "tax_exempt_threshold": 250000,
+    "freelance_tax_rate": 0.08,
+    "standard_deduction": 50000,
+    "quarterly_filing_day": 15
+  },
+  "tables": [
+    {
+      "name": "income_tax_brackets",
+      "brackets": [
+        {
+          "min": 0,
+          "max": 250000,
+          "rate": 0,
+          "base_tax": 0
+        },
+        {
+          "min": 250000,
+          "max": 400000,
+          "rate": 0.20,
+          "base_tax": 0
+        },
+        {
+          "min": 400000,
+          "max": 800000,
+          "rate": 0.25,
+          "base_tax": 30000
+        },
+        {
+          "min": 800000,
+          "max": "$$MAX_TAXABLE_INCOME",
+          "rate": 0.32,
+          "base_tax": 130000
+        }
+      ]
+    }
+  ],
   "inputs": {
     "gross_income": {
       "type": "number",
@@ -37,116 +164,168 @@ In short, the opentaxjs rules format is designed to cover as many tax scenarios 
     }
   },
   "outputs": {
-    "cummulative_gross_income": {
+    "cumulative_gross_income": {
       "type": "number",
       "description": "Cumulative gross income for the period"
+    },
+    "taxable_income": {
+      "type": "number",
+      "description": "Income subject to tax after deductions"
     }
   },
   "filing_schedules": [
     {
       "name": "Quarterly Income Tax Filing",
       "frequency": "quarterly",
-      "filing_day": 15
+      "filing_day": "$$quarterly_filing_day",
+      "forms": {
+        "primary": "1701Q",
+        "attachments": [
+          "Schedule 1 (Quarterly Income Statement)"
+        ]
+      }
     },
     {
       "name": "Annual Income Tax Filing",
       "frequency": "annual",
       "filing_day": 15,
       "when": {
-        "diff($liability, gross_income)": {
+        "diff(liability, $gross_income)": {
           "gt": 0
         }
+      },
+      "forms": {
+        "primary": "1701",
+        "attachments": [
+          "Schedule 1 (Background Information)",
+          "Schedule 2 (Itemized Deductions)"
+        ]
       }
     }
   ],
   "flow": [
     {
-      "name": "Calculate cummulative gross income",
+      "name": "Calculate annual gross income",
       "operations": [
         {
           "type": "set",
-          "target": "cummulative_gross_income",
+          "target": "cumulative_gross_income",
           "value": "$gross_income"
         },
         {
           "type": "multiply",
-          "target": "cummulative_gross_income",
+          "target": "cumulative_gross_income",
           "value": 12
         }
       ]
     },
     {
-      "name": "Tax exempt deduct",
+      "name": "Calculate taxable income",
+      "operations": [
+        {
+          "type": "set",
+          "target": "taxable_income",
+          "value": "cumulative_gross_income"
+        },
+        {
+          "type": "subtract",
+          "target": "taxable_income",
+          "value": "$deductions"
+        },
+        {
+          "type": "subtract",
+          "target": "taxable_income",
+          "value": "$$standard_deduction"
+        },
+        {
+          "type": "max",
+          "target": "taxable_income",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "name": "Apply tax calculation",
       "cases": [
         {
           "when": {
-            "$cummulative_gross_income": {
-              "lt": 250000
+            "is_freelance": {
+              "eq": true
             }
           },
           "operations": [
             {
-              "type": "deduct",
-              "target": "cummulative_gross_income",
-              "value": 250000,
+              "type": "set",
+              "target": "liability",
+              "value": "cumulative_gross_income"
+            },
+            {
+              "type": "multiply",
+              "target": "liability",
+              "value": "$$freelance_tax_rate"
             }
           ]
         },
-      ],
-    },
-    {
-      "name": "Apply 8% tax rate",
-      "when": {
-        "is_freelance": {
-          "eq": true
-        }
-      },
-      "operations": [
         {
-          "type": "set",
-          "target": "$liability",
-          "value": "cummulative_gross_income"
-        },
-        {
-          "type": "multiply",
-          "target": "$liability",
-          "value": 0.08
+          "when": {
+            "is_freelance": {
+              "eq": false
+            }
+          },
+          "operations": [
+            {
+              "type": "lookup",
+              "target": "liability",
+              "table": "income_tax_brackets",
+              "value": "taxable_income"
+            }
+          ]
         }
       ]
     },
+    {
+      "name": "Ensure non-negative liability",
+      "operations": [
+        {
+          "type": "max",
+          "target": "liability",
+          "value": 0
+        }
+      ]
+    }
   ]
 }
 ```
 
-A rules file is a JSON object that contains the following properties:
-- `$version`: The version of the rules file format. This is used to ensure compatibility with the opentaxjs library.
-- `name`: The name of the rule set. This is used to identify the rule set in the opentaxjs library.
-- `inputs`: An object that defines the inputs required for the rule set. They follow the [JSON Schema](https://json-schema.org/) format, which is a standard for describing the structure of JSON data. Each input has a `type` and a `description`.
-- `outputs`: An object that defines the outputs of the rule set. This is also in the [JSON Schema](https://json-schema.org/) format. Outputs are typically used to store intermediate results or final results of the calculations.
-- `filing_schedules`: An array of objects that define the filing schedules for the rule set. Each object contains:
-  - `name`: The name of the filing schedule.
-  - `frequency`: The frequency of the filing (e.g., "quarterly", "annual").
-  - `filing_day`: The day of the month when the filing is due.
-  - `when`: An optional condition that determines when the filing schedule should be applied. This is an expression that can reference the outputs of the rule set.
-- `flow`: An array of objects that define the flow of the rule set. Each object contains:
-  - `name`: A descriptive name for the step in the flow.
-  - `operations`: An array of operations to be performed in this step. Each operation can be one of the following types:
-    - `set`: Sets a value to a target variable.
-    - `multiply`: Multiplies a target variable by a value.
-    - `deduct`: Deducts a value from a target variable.
-  - `cases`: An optional array of cases that define conditional operations. Each case has:
-    - `when`: A condition that must be met for the case to be applied. This is an expression that can reference the inputs and outputs of the rule set.
-    - `operations`: An array of operations to be performed if the condition is met.
+### 5.1. Rule Structure Overview
 
-## Variables
+A rule file contains these main sections:
 
-Variables are containers that hold values for calculations. They can be categorized into three types:
-1. **Inputs**: These are variables where the user provides values when calculating the tax. They are defined in the `inputs` section of the rules file.
-2. **Outputs**: These are variables that can be used to store intermediate or final results of the calculations. They are defined in the `outputs` section of the rules file.
-3. **Special Variables**: These are variables that are used within the flow of the rules file but are not defined in the `inputs` or `outputs` sections. They are common variables that can be used in the calculations, such as `$liability`, which represents the current tax liability being calculated.
+#### Metadata Properties
+- **`$version`**: Format version for compatibility checking
+- **`name`**: Human-readable rule identifier
+- **`references`**: Array of legal citations and references (statutes, regulations, URLs, etc.)
+- **`effective_from`/`effective_to`**: Date validity range (ISO format)
+- **`jurisdiction`**: Geographic scope using ISO 3166 country code (e.g., "PH")
+- **`taxpayer_type`**: Applicable taxpayer category. Must be one of: `"INDIVIDUAL"`, `"CORPORATION"`, `"PARTNERSHIP"`, `"SOLE_PROPRIETORSHIP"`. Jurisdictions may extend this list for additional entity types (e.g., `"TRUST"`, `"ESTATE"`) as needed for their specific legal frameworks.
+- **`category`**: Tax type (e.g., "INCOME_TAX", "VAT", "WITHHOLDING_TAX") - optional
+- **`author`**: Rule maintainer (optional)
 
-### Variable declaration
-Variables declared in the `inputs` and `outputs` are using [JSON Schema](https://json-schema.org/) format. This means that properties such as `minimum`, `maximum`, `enum`, and `pattern` can be used to define the constraints and structure of the variables. For example,
+#### Calculation Components
+- **`constants`**: Law-defined fixed values (detailed in [Constants](#43-constants))
+- **`tables`**: Progressive brackets and lookup data (detailed in [Tables](#44-tables))
+- **`inputs`**: Required taxpayer data (detailed in [Variables](#42-variables))
+- **`outputs`**: Calculated results (detailed in [Variables](#42-variables))
+- **`filing_schedules`**: Due dates and forms (detailed in [Filing Schedules](#7-filing-schedules))
+- **`flow`**: Calculation sequence (detailed in [Operations](#10-operations))
+
+## 6. Variable System
+
+For the basic concepts of variables, constants, and tables, see [Core Concepts](#4-core-concepts). This section covers implementation details for working with variables.
+
+### 6.1. Variable Declaration
+
+Variables declared in the `inputs` and `outputs` sections use [JSON Schema](https://json-schema.org/) format for validation and documentation. This allows you to specify constraints and structure:
 
 ```json
 {
@@ -157,27 +336,37 @@ Variables declared in the `inputs` and `outputs` are using [JSON Schema](https:/
 }
 ```
 
-Special variables **cannot** be redeclared in the rules file and will be thrown an error if attempted. They are predefined variables that are used in the calculations and flow of the rules file.
+**Common JSON Schema properties for variables:**
+- `type`: Data type ("number", "string", "boolean", "array", "object")
+- `description`: Human-readable explanation
+- `minimum`/`maximum`: Numeric bounds
+- `enum`: List of allowed values
+- `pattern`: Regular expression for string validation
 
-### Referencing variables
-For inputs and outputs, you can reference them directly by their name. For example, to reference the `gross_income` input variable, simply use `gross_income`.
+**Declaration Rules:**
+- Variable names must not include prefixes (`$` or `$$`) in declarations
+- Names should use lowercase with underscores (`tax_exempt_threshold`)
+- Names must be unique within their section (inputs, outputs, constants)
 
-For special variables, you can reference them by prefixing them with a dollar sign `$`. For example, to reference the current tax liability, use `$liability`.
 
-### Special variables
-Special variables are predefined variables that are used in the calculations and flow of the rules file. They are not declared in the `inputs` or `outputs` sections but are available for use throughout the rules file. Some common special variables include:
-- `$liability`: Represents the current tax liability being calculated. This is the variable that holds the result of the tax calculation at any given point in the flow.
 
-## Filing Schedules
-Filing schedules define when tax filings are due. They define how frequent and when the tax filings should be made.
+## 7. Filing Schedules
 
-Each filing schedule has the following properties:
-- `name`: The name of the filing schedule.
-- `frequency`: The frequency of the filing
-  - `quarterly`: Filing is due every quarter (every 3 months).
-  - `annual`: Filing is due once a year.
-- `when`: An optional condition that determines when the filing schedule should be applied. This is an expression that can reference the outputs of the rule set. If this condition is not met, the filing schedule will not be applied.
-- `filing_day`: The day of the month when the filing is due. This is typically a number between 1 and 31, depending on the month. If the day exceeds the number of days in the month, it will be adjusted to the last day of the month.
+Filing schedules define when tax filings are due and specify the required forms and documentation.
+
+### 7.1. Schedule Properties
+
+Each filing schedule contains the following properties:
+
+- **`name`**: The name of the filing schedule
+- **`frequency`**: The frequency of the filing:
+  - `quarterly`: Filing is due every quarter (every 3 months)
+  - `annual`: Filing is due once a year
+- **`filing_day`**: The day of the month when the filing is due (1-31). If the day exceeds the number of days in the month, it will be adjusted to the last day of the month
+- **`when`**: Optional condition that determines when the filing schedule applies. This is an expression that can reference rule outputs. If this condition is not met, the filing schedule will not be applied
+- **`forms`**: Object specifying required tax forms and supporting documents:
+  - `primary`: The main form number required for the filing (e.g., "1701Q" for quarterly individual income tax)
+  - `attachments`: Array of supporting documents or additional forms that must be submitted with the primary form
 
 ### Example Filing Schedule
 ```json
@@ -186,28 +375,94 @@ Each filing schedule has the following properties:
   "frequency": "quarterly",
   "filing_day": 15,
   "when": {
-    "diff($liability, gross_income)": {
+    "diff(liability, $gross_income)": {
       "gt": 0
     }
+  },
+  "forms": {
+    "primary": "1701Q",
+    "attachments": [
+      "Schedule 1 (Income Statement)",
+      "Schedule 2 (Deductions)",
+      "Supporting receipts"
+    ]
   }
 }
 ```
 
-## Conditional Rules
+### Forms Object
+
+The `forms` object provides detailed information about the required documentation for tax filings:
+
+#### Primary Form
+The `primary` field specifies the main tax form that must be filed. This is typically a government-issued form number that taxpayers need to complete and submit.
+
+**Examples:**
+- `"1701Q"`: Quarterly Individual Income Tax Return (Philippines)
+- `"1701"`: Annual Individual Income Tax Return (Philippines)
+- `"1702Q"`: Quarterly Corporate Income Tax Return (Philippines)
+
+#### Attachments
+The `attachments` field is an array of supporting documents, schedules, or additional forms that must accompany the primary form. This can include:
+
+- **Supporting schedules**: Additional computation sheets or detailed breakdowns
+- **Documentation requirements**: Receipts, certificates, or other supporting evidence
+- **Additional forms**: Supplementary tax forms required for specific situations
+
+**Example with multiple filing schedules:**
+```json
+"filing_schedules": [
+  {
+    "name": "Quarterly Income Tax Filing",
+    "frequency": "quarterly",
+    "filing_day": 15,
+    "forms": {
+      "primary": "1701Q",
+      "attachments": [
+        "Schedule 1 (Quarterly Income Statement)",
+        "Schedule 7A (Creditable Withholding Tax)"
+      ]
+    }
+  },
+  {
+    "name": "Annual Income Tax Filing",
+    "frequency": "annual",
+    "filing_day": 15,
+    "when": {
+      "diff(liability, $gross_income)": {
+        "gt": 0
+      }
+    },
+    "forms": {
+      "primary": "1701",
+      "attachments": [
+        "Schedule 1 (Background Information)",
+        "Schedule 2 (Itemized Deductions)",
+        "Schedule 7A (Creditable Withholding Tax)",
+        "Supporting receipts for deductions",
+        "Certificate of Compensation Payment (BIR Form 2316)"
+      ]
+    }
+  }
+]
+```
+
+## 8. Conditional Rules
 
 Conditional rules allows you to run specific operations or schedules based on certain conditions. This is useful for handling different scenarios in tax calculations, such as different tax rates for different income levels or requirement-specific cases.
 
 At its core, a conditional rule is an `object` that contains the expression to be evaluated and the expected value to compare against, by explicitly telling the operator to use and the value to compare. For example:
 
 ```json
-"cummulative_gross_income": {
+"cumulative_gross_income": {
   "lt": 250000
 }
 ```
 
-In this case `cummulative_gross_income` is the variable being evaluated, `lt` is the operator (less than), and `250000` is the value to compare against.
+In this case `cumulative_gross_income` is the variable being evaluated, `lt` is the operator (less than), and `250000` is the value to compare against.
 
-### Operators
+### 8.1. Operators
+
 Each rule must have an operator that defines how the condition is evaluated. The operator is a string that specifies the type of comparison to be made. They are case-sensitive and the value can be a number, string, or boolean depending on the context of the variable being evaluated.
 
 The following operators can be used in conditional rules:
@@ -218,29 +473,636 @@ The following operators can be used in conditional rules:
 - `gte`: Greater than or equal to
 - `lte`: Less than or equal to
 
-## Expressions
-> TODO
+### 8.2. Default Cases
 
-Expressions are used in conditional rules and operations to reference variables and perform calculations.
+Cases in a `cases` array are evaluated in order. A case without a `when` clause serves as the default (else) case and will be executed if no previous conditions match.
 
-### Variable References
-- Direct reference: `gross_income`
-- Special variable: `$liability`
-- Function calls: `diff($liability, gross_income)`
+**Example with default case:**
+```json
+{
+  "name": "Apply tax rate based on income level",
+  "cases": [
+    {
+      "when": {
+        "taxable_income": {
+          "lte": "$$tax_exempt_threshold"
+        }
+      },
+      "operations": [
+        {
+          "type": "set",
+          "target": "liability", 
+          "value": 0
+        }
+      ]
+    },
+    {
+      "operations": [
+        {
+          "type": "set",
+          "target": "liability",
+          "value": "taxable_income"
+        },
+        {
+          "type": "deduct",
+          "target": "liability",
+          "value": "$$tax_exempt_threshold"
+        },
+        {
+          "type": "multiply",
+          "target": "liability",
+          "value": "$$basic_tax_rate"
+        }
+      ]
+    }
+  ]
+}
+```
 
-## Operations
-> TODO
+**Rules:**
+- Default cases (without `when`) must be the last case in the array
+- Only one default case is allowed per `cases` array
+- If no conditions match and no default case exists, no operations are performed
 
-Operations define the actions that can be performed on variables during tax calculations
+## 9. Expressions
+
+Expressions are used in conditional rules and operations to reference variables and perform calculations. They provide a way to dynamically compute values and make decisions based on the current state of variables.
+
+### 9.1. Variable References
+
+Variables in expressions follow the same referencing system described in [Variables](#42-variables). Use the appropriate prefix based on the variable's source domain:
+
+- **Inputs**: `$gross_income`, `$deductions`
+- **Constants**: `$$tax_exempt_threshold`, `$$standard_deduction`
+- **Outputs/Special**: `taxable_income`, `liability`
+
+Expressions can also include **function calls** that operate on variables:
+```json
+"diff(liability, $gross_income)"
+```
+
+### 9.2. Built-in Functions
+
+The following built-in functions are available for use in expressions:
+
+- `diff(a, b)`: Returns the absolute difference between two values `|a - b|`
+- `sum(a, b, ...)`: Returns the sum of all provided values
+- `max(a, b, ...)`: Returns the maximum value among the provided values
+- `min(a, b, ...)`: Returns the minimum value among the provided values
+- `round(value, decimals?)`: Rounds a value to the specified number of decimal places (default: 0)
+
+### 9.3. Expression Examples
+
+```json
+{
+  "when": {
+    "sum($gross_income, $additional_income)": {
+      "gt": "$$tax_exempt_threshold"
+    }
+  }
+}
+```
+
+```json
+{
+  "when": {
+    "diff(liability, 0)": {
+      "gt": 1000
+    }
+  }
+}
+```
+
+## 10. Operations
+
+Operations define the actions that can be performed on variables during tax calculations. They are the building blocks of the calculation flow and allow you to manipulate values, perform arithmetic, and store results.
 
 ### Defining an Operation
 
-> TODO
+Each operation is a JSON object that specifies the action to be performed. All operations have a `type` property that defines the kind of operation, and most have a `target` property that specifies which variable to modify.
 
-### Operation Types
+Basic operation structure:
+```json
+{
+  "type": "operation_type",
+  "target": "variable_name",
+  "value": "value_or_expression"
+}
+```
 
-> TODO
+### 10.1. Operation Types
 
-## Operation Best Practices
+The following operation types are supported:
 
-> TODO
+#### `set`
+Sets a variable to a specific value. This completely replaces the current value of the target variable.
+
+```json
+{
+  "type": "set",
+  "target": "taxable_income",
+  "value": "$gross_income"
+}
+```
+
+```json
+{
+  "type": "set",
+  "target": "liability",
+  "value": 0
+}
+```
+
+#### `add`
+Adds a value to the target variable. The target variable must already have a numeric value.
+
+```json
+{
+  "type": "add",
+  "target": "total_deductions",
+  "value": 50000
+}
+```
+
+#### `subtract` / `deduct`
+Subtracts a value from the target variable. Both `subtract` and `deduct` perform the same operation.
+
+```json
+{
+  "type": "deduct",
+  "target": "taxable_income",
+  "value": "$total_deductions"
+}
+```
+
+```json
+{
+  "type": "subtract",
+  "target": "liability",
+  "value": "withholding_tax"
+}
+```
+
+#### `multiply`
+Multiplies the target variable by a value. Commonly used for applying tax rates.
+
+```json
+{
+  "type": "multiply",
+  "target": "liability",
+  "value": "$$tax_rate"
+}
+```
+
+#### `divide`
+Divides the target variable by a value.
+
+```json
+{
+  "type": "divide",
+  "target": "monthly_income",
+  "value": "$$months_per_year"
+}
+```
+
+#### `min`
+Sets the target variable to the minimum value between its current value and the specified value.
+
+```json
+{
+  "type": "min",
+  "target": "liability",
+  "value": "$$maximum_tax_cap"
+}
+```
+
+#### `max`
+Sets the target variable to the maximum value between its current value and the specified value.
+
+```json
+{
+  "type": "max",
+  "target": "taxable_income",
+  "value": 0
+}
+```
+
+#### `lookup`
+Calculates a value based on a table lookup, primarily used for progressive tax brackets. This operation finds the appropriate bracket for the given value and calculates the tax based on the bracket structure.
+
+```json
+{
+  "type": "lookup",
+  "target": "liability",
+  "table": "income_tax_brackets",
+  "value": "taxable_income"
+}
+```
+
+The lookup operation works by:
+1. Finding the bracket where `value` falls between `min` and `max`
+2. Calculating the tax for the amount within that bracket using the bracket's `rate`
+3. Adding the `base_tax` from lower brackets
+4. Setting the result to the target variable
+
+**Note:** For unlimited tax brackets, use the predefined constant `$$MAX_TAXABLE_INCOME` as the `max` value.
+
+**Example calculation:**
+- If `taxable_income` is 500,000 and falls in the 400,000+ bracket (25% rate, 30,000 base tax)
+- Tax = 30,000 + (500,000 - 400,000) × 0.25 = 55,000
+
+### Using Expressions in Operations
+
+Operations can use expressions and function calls in their `value` property. The following expression types are supported:
+
+**Variable References:**
+```json
+{
+  "type": "set",
+  "target": "taxable_income", 
+  "value": "$gross_income"
+}
+```
+
+**Function Calls:**
+```json
+{
+  "type": "set",
+  "target": "liability",
+  "value": "max(taxable_income, 0)"
+}
+```
+
+**Literal Values:**
+```json
+{
+  "type": "multiply",
+  "target": "liability",
+  "value": 0.25
+}
+```
+
+**Expression Scope Limitations:**
+- Complex arithmetic expressions (e.g., `"($gross_income - $$deduction) * $$rate"`) are **not supported**
+- Only single variable references, single function calls, or literal values are allowed
+- This maintains auditability by keeping each operation atomic and traceable
+- Multi-step calculations must be broken into separate operations with intermediate variables
+
+### 10.2. Operation Best Practices
+
+When writing operations, follow these best practices to ensure clarity and maintainability:
+
+#### Use Descriptive Variable Names
+Choose variable names that clearly describe what they represent:
+
+```json
+// Good
+{
+  "type": "set",
+  "target": "taxable_income",
+  "value": "gross_income"
+}
+
+// Avoid
+{
+  "type": "set",
+  "target": "temp_var",
+  "value": "gross_income"
+}
+```
+
+#### Group Related Operations
+Organize operations into logical steps within the flow:
+
+```json
+{
+  "name": "Calculate taxable income",
+  "operations": [
+    {
+      "type": "set",
+      "target": "taxable_income",
+      "value": "$gross_income"
+    },
+    {
+      "type": "deduct",
+      "target": "taxable_income",
+      "value": "$$standard_deduction"
+    },
+    {
+      "type": "max",
+      "target": "taxable_income",
+      "value": 0
+    }
+  ]
+}
+```
+
+#### Initialize Variables Before Use
+Always initialize variables before performing calculations:
+
+```json
+{
+  "name": "Initialize liability calculation",
+  "operations": [
+    {
+      "type": "set",
+      "target": "liability",
+      "value": 0
+    }
+  ]
+}
+```
+
+#### Use Meaningful Step Names
+Give each step in the flow a clear, descriptive name:
+
+```json
+{
+  "name": "Apply progressive tax brackets",
+  "operations": [...]
+},
+{
+  "name": "Calculate withholding tax credit",
+  "operations": [...]
+}
+```
+
+#### Handle Edge Cases
+Use conditional cases to handle different scenarios:
+
+```json
+{
+  "name": "Apply tax rate based on income level",
+  "cases": [
+    {
+      "when": {
+        "taxable_income": {
+          "lte": "$$tax_exempt_threshold"
+        }
+      },
+      "operations": [
+        {
+          "type": "set",
+          "target": "liability",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "when": {
+        "taxable_income": {
+          "gt": "$$tax_exempt_threshold"
+        }
+      },
+      "operations": [
+        {
+          "type": "set",
+          "target": "liability",
+          "value": "taxable_income"
+        },
+        {
+          "type": "deduct",
+          "target": "liability",
+          "value": "$$tax_exempt_threshold"
+        },
+        {
+          "type": "multiply",
+          "target": "liability",
+          "value": "$$basic_tax_rate"
+        }
+      ]
+    }
+  ]
+}
+```
+
+## 11. Standard Library
+
+The opentaxjs specification defines a standard library of predefined constants, variables, and functions that are available in all rule implementations without explicit declaration. These built-in elements provide essential functionality and ensure consistency across different implementations.
+
+### 11.1. Predefined Constants
+
+The specification defines the following predefined constants that are available in all rules:
+
+- **`$$MAX_TAXABLE_INCOME`**: Set to `9007199254740991` (IEEE 754 maximum safe integer). Used as the upper bound for unlimited tax brackets, ensuring explicit and auditable maximum values.
+
+### 11.2. Predefined Variables
+
+The specification defines the following predefined variables that are available in all rules:
+
+- **`liability`**: The current tax liability being calculated. This variable holds the result of tax calculations at any point in the flow and serves as the primary output for most tax rules.
+
+**Important Notes:**
+- Predefined variables cannot be redeclared in rule files
+- They have no prefix (part of the calculation domain)
+- Attempting to declare them will result in validation errors
+
+### 11.3. Built-in Functions
+
+The following built-in functions are available for use in expressions and operations:
+
+- **`diff(a, b)`**: Returns the absolute difference between two values `|a - b|`
+- **`sum(a, b, ...)`**: Returns the sum of all provided values
+- **`max(a, b, ...)`**: Returns the maximum value among the provided values
+- **`min(a, b, ...)`**: Returns the minimum value among the provided values
+- **`round(value, decimals?)`**: Rounds a value to the specified number of decimal places (default: 0)
+
+These functions can be used in conditional expressions and operation values to perform common calculations needed in tax computations.
+
+## 12. Implementation Guidelines
+
+This section provides guidance for implementers, covering both technical specifications and philosophical principles for building opentaxjs rule engines.
+
+### 12.1. Grammar
+
+This subsection defines the formal grammar and syntax rules for opentaxjs-specific elements. Implementations must enforce these rules to ensure consistency and interoperability.
+
+#### 12.1.1. Identifiers
+
+All identifiers (variable names, constant names, table names, etc.) must follow these rules:
+
+**Syntax Pattern:**
+```
+identifier = [a-z][a-z0-9_]*
+```
+
+**Rules:**
+- Must start with a lowercase letter (`a-z`)
+- Can contain lowercase letters, digits, and underscores
+- Cannot start with digits or underscores
+- Cannot contain uppercase letters, spaces, or special characters
+
+**Valid Examples:**
+- `gross_income`
+- `tax_rate_2024`
+- `liability`
+
+**Invalid Examples:**
+- `GrossIncome` (uppercase letters)
+- `_private` (starts with underscore)
+- `2024_rate` (starts with digit)
+- `tax-rate` (contains hyphen)
+
+#### 12.1.2. Variable References
+
+Variable references use prefixes to indicate their domain:
+
+**Syntax Patterns:**
+```
+input_variable = "$" identifier
+constant_variable = "$$" identifier
+calculated_variable = identifier
+```
+
+**Examples:**
+- `$gross_income`, `$deductions` (inputs)
+- `$$tax_rate`, `$$MAX_TAXABLE_INCOME` (constants)
+- `taxable_income`, `liability` (calculated)
+
+**Rules:**
+- Prefixes (`$`, `$$`) are only used in references, never in declarations
+- Variable references are case-sensitive
+- Must reference declared or predefined variables
+
+#### 12.1.3. Function Calls
+
+Function calls are used in expressions and conditional rules:
+
+**Syntax Pattern:**
+```
+function_call = function_name "(" [parameter_list] ")"
+parameter_list = parameter ("," parameter)*
+parameter = variable_reference | function_call | number | boolean
+number = [0-9]+ ("." [0-9]+)?
+boolean = "true" | "false"
+```
+
+**Examples:**
+```
+diff(liability, $gross_income)
+sum($income1, $income2, $income3)
+max(taxable_income, 0)
+round(liability, 2)
+min(tax_rate, 0.25)
+```
+
+**Rules:**
+- Function names must conform to the `identifier` syntax defined in section 12.1.1
+- Parameters can be variable references, nested function calls, numbers, or booleans
+- Numbers can be integers or decimals
+- Booleans are the literals `true` or `false`
+- Nested function calls are allowed
+- Whitespace around commas and parentheses is optional
+
+#### 12.1.4. Validation Rules
+
+Implementations must validate:
+
+1. **Identifier conformance** - All names follow the identifier pattern
+2. **Variable reference validity** - All referenced variables exist or are predefined
+3. **Function call syntax** - Proper parentheses, comma separation, valid parameters
+4. **Prefix consistency** - Prefixes used only in references, not declarations
+
+### 12.2. Implementation Philosophy
+
+This subsection outlines the philosophical approach for implementing opentaxjs rule engines. These principles reflect the pragmatic spirit of the specification—prioritizing accessibility and real-world usability over theoretical purity.
+
+#### 12.2.1. Be Forgiving by Default
+
+**Warn First, Error Only When Asked**
+
+The default mode of operation should be helpful rather than strict. When encountering ambiguous or potentially incorrect rule definitions:
+
+- **Log warnings** for issues that might indicate mistakes but don't prevent meaningful calculation
+- **Continue execution** whenever a reasonable interpretation exists
+- **Only throw errors** when explicitly operating in strict mode or when the rule is genuinely uninterpretable
+
+This philosophy recognizes that tax rules are often written by domain experts who are not necessarily JSON experts, and that minor formatting inconsistencies shouldn't prevent useful calculations.
+
+Examples of forgiving behavior:
+- Accept both `"deduct"` and `"subtract"` operation types interchangeably
+- Allow trailing commas in JSON where the parser supports it
+- Warn about unused variables rather than failing
+- Auto-correct obvious typos in operation names when unambiguous
+- Warn but interpret correctly when variable prefixes are misused (e.g., `$gross_income` in declarations or missing `$` in references)
+
+#### 12.2.2. Embrace Pragmatic Imperfection
+
+**Good Enough is Better Than Perfect**
+
+This specification deliberately chooses practical solutions over theoretically optimal ones. Implementations should embrace this same pragmatism:
+
+- **Use existing tooling**: Build on JSON parsing, validation, and tooling rather than inventing new formats
+- **Favor simplicity**: When choosing between elegant and simple, choose simple and well-documented
+- **Accept limitations**: Don't try to solve every possible tax scenario—focus on covering the most common cases well
+- **Optimize for readability**: Code that tax professionals can understand is more valuable than code that computer scientists find beautiful
+
+#### 12.2.3. Design for Human Understanding
+
+**Humans Working with Tax Logic Are Your Primary Users**
+
+While the rules are executed by machines, they are written, reviewed, and audited by humans—whether that's rule authors, developers implementing systems, or anyone else working with tax logic. Implementation decisions should prioritize human comprehension:
+
+- **Error messages should be tax-domain-relevant**: Instead of "JSON parse error at line 47", provide "Invalid tax bracket definition in income_tax_brackets table"
+- **Preserve rule context in execution**: When displaying calculated values, show which rule section produced them
+- **Make debugging accessible**: Provide execution traces that tax professionals can follow without understanding the implementation
+- **Document with tax examples**: Show how implementation features relate to real tax scenarios
+
+#### 12.2.4. Build Bridges, Not Walls
+
+**Enable Integration Rather Than Replacement**
+
+opentaxjs is designed to work alongside existing systems, not replace them entirely. Implementations should facilitate integration:
+
+- **Provide multiple interfaces**: Support both programmatic APIs and human-readable outputs
+- **Export calculations transparently**: Make it easy to understand and verify how results were calculated
+- **Accept data from various sources**: Be flexible about input formats while maintaining rule consistency
+- **Enable gradual adoption**: Allow organizations to migrate one calculation at a time rather than requiring full system replacement
+
+#### 12.2.5. Evolve Thoughtfully
+
+**Change Should Enhance Accessibility**
+
+As tax laws and implementation needs evolve, changes should maintain the specification's core commitment to accessibility:
+
+- **Maintain backward compatibility** whenever possible to protect existing rule investments
+- **Add complexity only when it solves real problems** that are frequently encountered in practice
+- **Document the reasoning** behind implementation choices so future maintainers understand the trade-offs
+- **Consider the full ecosystem**: Changes should benefit rule authors, auditors, and system integrators
+
+#### 12.2.6. Trust but Verify
+
+**Enable Confidence Through Transparency**
+
+Tax calculations require high confidence, but this doesn't mean implementations should be rigid:
+
+- **Make verification easy**: Provide clear audit trails and calculation breakdowns
+- **Support multiple validation levels**: From basic syntax checking to deep semantic validation
+- **Enable testing**: Make it straightforward to test rules with various inputs and verify expected outputs
+- **Facilitate review**: Generate human-readable summaries of rule behavior for non-technical stakeholders
+
+#### 12.2.7. Eliminate Null Values in Calculations
+
+**Explicit is Better Than Implicit**
+
+Null values are prohibited in calculation-related sections of opentaxjs rules because they violate the core principle of auditability and explicitness. This applies to:
+
+- **Operations**: `value`, `target` fields must never be null
+- **Expressions**: All variable references and function parameters must have explicit values
+- **Tables**: `min`, `max`, `rate`, `base_tax` and other calculation fields must be explicit
+- **Constants**: All defined constants must have concrete values
+- **Conditional logic**: All comparison values must be explicit
+
+**Why nulls break calculations:**
+- **Nulls hide intent**: When a calculation value is null, it's unclear whether this represents "unlimited," "not applicable," "zero," or an error
+- **Nulls break auditability**: Tax auditors cannot verify what null means in a tax calculation context
+- **Nulls create implementation inconsistencies**: Different programming languages handle null arithmetic differently
+
+**Instead of nulls in calculations, use:**
+- **Predefined constants**: Use `$$MAX_TAXABLE_INCOME` for unlimited values
+- **Explicit zeros**: Use `0` for amounts that should be zero
+- **Explicit defaults**: Use meaningful default values appropriate to the calculation context
+
+**Note:** Null values are acceptable in metadata fields (`author`, `effective_to`, `category`, etc.) since they don't participate in calculations.
+
+This philosophical approach ensures that opentaxjs implementations remain accessible, practical, and aligned with the real-world needs of tax professionals while maintaining the technical rigor needed for accurate calculations.
