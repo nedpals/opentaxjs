@@ -20,6 +20,7 @@ This specification is primarily intended for **implementers and contributors** t
 4. [Core Concepts](#4-core-concepts)
    - 4.1. [Rules](#41-rules)
    - 4.2. [Variables](#42-variables)
+     - 4.2.1. [Predefined Variables](#421-predefined-variables)
    - 4.3. [Constants](#43-constants)
      - 4.3.1. [Predefined Constants](#431-predefined-constants)
    - 4.4. [Tables](#44-tables)
@@ -27,21 +28,24 @@ This specification is primarily intended for **implementers and contributors** t
 6. [Variable System](#6-variable-system)
    - 6.1. [Variable Declaration](#61-variable-declaration)
    - 6.2. [Variable Referencing System](#62-variable-referencing-system)
-   - 6.3. [Special Variables](#63-special-variables)
 7. [Filing Schedules](#7-filing-schedules)
 8. [Conditional Rules](#8-conditional-rules)
 9. [Expressions](#9-expressions)
 10. [Operations](#10-operations)
     - 10.1. [Operation Types](#101-operation-types)
     - 10.2. [Operation Best Practices](#102-operation-best-practices)
-11. [Implementation Philosophy](#11-implementation-philosophy)
-    - 11.1. [Be Forgiving by Default](#111-be-forgiving-by-default)
-    - 11.2. [Embrace Pragmatic Imperfection](#112-embrace-pragmatic-imperfection)
-    - 11.3. [Design for Human Understanding](#113-design-for-human-understanding)
-    - 11.4. [Build Bridges, Not Walls](#114-build-bridges-not-walls)
-    - 11.5. [Evolve Thoughtfully](#115-evolve-thoughtfully)
-    - 11.6. [Trust but Verify](#116-trust-but-verify)
-    - 11.7. [Eliminate Null Values in Calculations](#117-eliminate-null-values-in-calculations)
+11. [Standard Library](#11-standard-library)
+    - 11.1. [Predefined Constants](#111-predefined-constants)
+    - 11.2. [Predefined Variables](#112-predefined-variables)
+    - 11.3. [Built-in Functions](#113-built-in-functions)
+12. [Implementation Philosophy](#12-implementation-philosophy)
+    - 12.1. [Be Forgiving by Default](#121-be-forgiving-by-default)
+    - 12.2. [Embrace Pragmatic Imperfection](#122-embrace-pragmatic-imperfection)
+    - 12.3. [Design for Human Understanding](#123-design-for-human-understanding)
+    - 12.4. [Build Bridges, Not Walls](#124-build-bridges-not-walls)
+    - 12.5. [Evolve Thoughtfully](#125-evolve-thoughtfully)
+    - 12.6. [Trust but Verify](#126-trust-but-verify)
+    - 12.7. [Eliminate Null Values in Calculations](#127-eliminate-null-values-in-calculations)
 
 ## 1. Overview
 
@@ -85,6 +89,17 @@ Variables are containers that hold values for calculations. They can be categori
 2. **Constants** (`$$` Prefix): These are law-defined fixed values that come from tax regulations and remain the same across calculations. They represent data from the legal/regulatory domain and are defined in the `constants` section (e.g., `$$tax_exempt_threshold`).
 
 3. **Calculated Values** (No Prefix): These are values computed during the calculation flow, including both user-defined outputs and system-defined special variables. They represent data from the rule calculation domain (e.g., `taxable_income`, `liability`).
+
+#### 4.2.1. Predefined Variables
+
+The specification defines the following predefined variables that are available in all rules without explicit declaration:
+
+- **`liability`**: The current tax liability being calculated. This variable holds the result of tax calculations at any point in the flow and serves as the primary output for most tax rules.
+
+**Important Notes:**
+- Predefined variables cannot be redeclared in rule files
+- They have no prefix (part of the calculation domain)
+- Attempting to declare them will result in validation errors
 
 ### 4.3. Constants
 
@@ -355,16 +370,7 @@ Variables declared in the `inputs` and `outputs` sections use [JSON Schema](http
 - Names should use lowercase with underscores (`tax_exempt_threshold`)
 - Names must be unique within their section (inputs, outputs, constants)
 
-### 6.2. Special Variables
 
-Special variables are system-defined and available throughout the rule without explicit declaration:
-
-- **`liability`**: The current tax liability being calculated. This variable holds the result of tax calculations at any point in the flow and serves as the primary output for most tax rules.
-
-**Important Notes:**
-- Special variables cannot be redeclared in rule files
-- They have no prefix (part of the calculation domain)
-- Attempting to declare them will result in validation errors
 
 ## 7. Filing Schedules
 
@@ -824,11 +830,44 @@ Use conditional cases to handle different scenarios:
 }
 ```
 
-## 11. Implementation Philosophy
+## 11. Standard Library
+
+The opentaxjs specification defines a standard library of predefined constants, variables, and functions that are available in all rule implementations without explicit declaration. These built-in elements provide essential functionality and ensure consistency across different implementations.
+
+### 11.1. Predefined Constants
+
+The specification defines the following predefined constants that are available in all rules:
+
+- **`$$MAX_TAXABLE_INCOME`**: Set to `9007199254740991` (IEEE 754 maximum safe integer). Used as the upper bound for unlimited tax brackets, ensuring explicit and auditable maximum values.
+
+### 11.2. Predefined Variables
+
+The specification defines the following predefined variables that are available in all rules:
+
+- **`liability`**: The current tax liability being calculated. This variable holds the result of tax calculations at any point in the flow and serves as the primary output for most tax rules.
+
+**Important Notes:**
+- Predefined variables cannot be redeclared in rule files
+- They have no prefix (part of the calculation domain)
+- Attempting to declare them will result in validation errors
+
+### 11.3. Built-in Functions
+
+The following built-in functions are available for use in expressions and operations:
+
+- **`diff(a, b)`**: Returns the absolute difference between two values `|a - b|`
+- **`sum(a, b, ...)`**: Returns the sum of all provided values
+- **`max(a, b, ...)`**: Returns the maximum value among the provided values
+- **`min(a, b, ...)`**: Returns the minimum value among the provided values
+- **`round(value, decimals?)`**: Rounds a value to the specified number of decimal places (default: 0)
+
+These functions can be used in conditional expressions and operation values to perform common calculations needed in tax computations.
+
+## 12. Implementation Philosophy
 
 This section outlines the philosophical approach for implementing opentaxjs rule engines. These principles reflect the pragmatic spirit of the specification—prioritizing accessibility and real-world usability over theoretical purity.
 
-### 11.1. Be Forgiving by Default
+### 12.1. Be Forgiving by Default
 
 **Warn First, Error Only When Asked**
 
@@ -847,7 +886,7 @@ Examples of forgiving behavior:
 - Auto-correct obvious typos in operation names when unambiguous
 - Warn but interpret correctly when variable prefixes are misused (e.g., `$gross_income` in declarations or missing `$` in references)
 
-### 11.2. Embrace Pragmatic Imperfection
+### 12.2. Embrace Pragmatic Imperfection
 
 **Good Enough is Better Than Perfect**
 
@@ -858,7 +897,7 @@ This specification deliberately chooses practical solutions over theoretically o
 - **Accept limitations**: Don't try to solve every possible tax scenario—focus on covering the most common cases well
 - **Optimize for readability**: Code that tax professionals can understand is more valuable than code that computer scientists find beautiful
 
-### 11.3. Design for Human Understanding
+### 12.3. Design for Human Understanding
 
 **Humans Working with Tax Logic Are Your Primary Users**
 
@@ -869,7 +908,7 @@ While the rules are executed by machines, they are written, reviewed, and audite
 - **Make debugging accessible**: Provide execution traces that tax professionals can follow without understanding the implementation
 - **Document with tax examples**: Show how implementation features relate to real tax scenarios
 
-### 11.4. Build Bridges, Not Walls
+### 12.4. Build Bridges, Not Walls
 
 **Enable Integration Rather Than Replacement**
 
@@ -880,7 +919,7 @@ opentaxjs is designed to work alongside existing systems, not replace them entir
 - **Accept data from various sources**: Be flexible about input formats while maintaining rule consistency
 - **Enable gradual adoption**: Allow organizations to migrate one calculation at a time rather than requiring full system replacement
 
-### 11.5. Evolve Thoughtfully
+### 12.5. Evolve Thoughtfully
 
 **Change Should Enhance Accessibility**
 
@@ -891,7 +930,7 @@ As tax laws and implementation needs evolve, changes should maintain the specifi
 - **Document the reasoning** behind implementation choices so future maintainers understand the trade-offs
 - **Consider the full ecosystem**: Changes should benefit rule authors, auditors, and system integrators
 
-### 11.6. Trust but Verify
+### 12.6. Trust but Verify
 
 **Enable Confidence Through Transparency**
 
@@ -902,7 +941,7 @@ Tax calculations require high confidence, but this doesn't mean implementations 
 - **Enable testing**: Make it straightforward to test rules with various inputs and verify expected outputs
 - **Facilitate review**: Generate human-readable summaries of rule behavior for non-technical stakeholders
 
-### 11.7. Eliminate Null Values in Calculations
+### 12.7. Eliminate Null Values in Calculations
 
 **Explicit is Better Than Implicit**
 
