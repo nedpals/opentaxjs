@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { version, calculateTax } from './index';
+import { version } from './index';
 
 describe('OpenTaxJS', () => {
   it('should have correct version', () => {
