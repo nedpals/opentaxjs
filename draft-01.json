@@ -1,0 +1,441 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/nedpals/opentaxjs/raw/refs/heads/master/draft-01.json",
+  "title": "OpenTaxJS Rules Format",
+  "description": "JSON Schema for opentaxjs tax calculation rules format",
+  "type": "object",
+  "required": [
+    "$version",
+    "name",
+    "jurisdiction",
+    "taxpayer_type",
+    "flow"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$version": {
+      "type": "string",
+      "description": "Format version for compatibility checking",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "examples": ["1.0.0"]
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable rule identifier",
+      "minLength": 1
+    },
+    "references": {
+      "type": "array",
+      "description": "Array of legal citations and references (statutes, regulations, URLs, etc.)",
+      "items": {
+        "type": "string"
+      }
+    },
+    "effective_from": {
+      "type": "string",
+      "description": "Start date for rule validity in ISO format",
+      "format": "date"
+    },
+    "effective_to": {
+      "type": ["string", "null"],
+      "description": "End date for rule validity in ISO format",
+      "format": "date"
+    },
+    "jurisdiction": {
+      "type": "string",
+      "description": "Geographic scope using ISO 3166 country code",
+      "pattern": "^[A-Z]{2}$",
+      "examples": ["PH", "US", "CA"]
+    },
+    "taxpayer_type": {
+      "type": "string",
+      "description": "Applicable taxpayer category",
+      "enum": [
+        "INDIVIDUAL",
+        "CORPORATION",
+        "PARTNERSHIP",
+        "SOLE_PROPRIETORSHIP",
+        "TRUST",
+        "ESTATE"
+      ]
+    },
+    "category": {
+      "type": ["string", "null"],
+      "description": "Tax type category",
+      "examples": ["INCOME_TAX", "VAT", "WITHHOLDING_TAX"]
+    },
+    "author": {
+      "type": ["string", "null"],
+      "description": "Rule maintainer"
+    },
+    "constants": {
+      "type": "object",
+      "description": "Law-defined fixed values referenced with $$ prefix",
+      "patternProperties": {
+        "^[a-z][a-z0-9_]*$": {
+          "type": ["number", "string", "boolean"],
+          "not": { "type": "null" },
+          "description": "Constant value - nulls are not allowed in calculations"
+        }
+      },
+      "additionalProperties": false
+    },
+    "tables": {
+      "type": "array",
+      "description": "Progressive brackets and lookup data",
+      "items": {
+        "type": "object",
+        "required": ["name", "brackets"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "description": "Table identifier following naming conventions"
+          },
+          "brackets": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["min", "max", "rate"],
+              "additionalProperties": true,
+              "properties": {
+                "min": {
+                  "type": "number",
+                  "description": "Minimum value for this bracket"
+                },
+                "max": {
+                  "oneOf": [
+                    { "type": "number" },
+                    { "type": "string", "pattern": "^\\$\\$[a-z][a-z0-9_]*$" }
+                  ],
+                  "description": "Maximum value for this bracket or constant reference"
+                },
+                "rate": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Tax rate for this bracket"
+                },
+                "base_tax": {
+                  "type": "number",
+                  "minimum": 0,
+                  "default": 0,
+                  "description": "Base tax amount from lower brackets"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "description": "Required taxpayer data using JSON Schema format",
+      "patternProperties": {
+        "^[a-z][a-z0-9_]*$": {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["number", "string", "boolean", "array", "object"]
+            },
+            "description": {
+              "type": "string",
+              "description": "Human-readable explanation of the input"
+            },
+            "minimum": {
+              "type": "number"
+            },
+            "maximum": {
+              "type": "number"
+            },
+            "enum": {
+              "type": "array"
+            },
+            "pattern": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "outputs": {
+      "type": "object",
+      "description": "Calculated results using JSON Schema format",
+      "patternProperties": {
+        "^[a-z][a-z0-9_]*$": {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["number", "string", "boolean", "array", "object"]
+            },
+            "description": {
+              "type": "string",
+              "description": "Human-readable explanation of the output"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "filing_schedules": {
+      "type": "array",
+      "description": "Due dates and forms for tax filings",
+      "items": {
+        "type": "object",
+        "required": ["name", "frequency", "filing_day", "forms"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the filing schedule"
+          },
+          "frequency": {
+            "type": "string",
+            "enum": ["quarterly", "annual"],
+            "description": "Filing frequency"
+          },
+          "filing_day": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 31
+              },
+              {
+                "type": "string",
+                "pattern": "^\\$\\$[a-z][a-z0-9_]*$"
+              }
+            ],
+            "description": "Day of month when filing is due or constant reference"
+          },
+          "when": {
+            "$ref": "#/$defs/conditionalRule",
+            "description": "Optional condition determining when schedule applies"
+          },
+          "forms": {
+            "type": "object",
+            "required": ["primary"],
+            "additionalProperties": false,
+            "properties": {
+              "primary": {
+                "type": "string",
+                "description": "Main form number required for filing"
+              },
+              "attachments": {
+                "type": "array",
+                "description": "Supporting documents or additional forms",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "flow": {
+      "type": "array",
+      "description": "Calculation sequence defining tax computation steps",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/flowStep"
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "description": "Valid identifier following naming conventions"
+    },
+    "variableReference": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^\\$[a-z][a-z0-9_]*$",
+          "description": "Input variable reference with $ prefix"
+        },
+        {
+          "type": "string",
+          "pattern": "^\\$\\$[a-z][a-z0-9_]*$",
+          "description": "Constant reference with $$ prefix"
+        },
+        {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "description": "Calculated variable reference (no prefix)"
+        }
+      ]
+    },
+    "expressionValue": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/variableReference"
+        },
+        {
+          "type": "number",
+          "description": "Literal numeric value"
+        },
+        {
+          "type": "boolean",
+          "description": "Literal boolean value"
+        },
+        {
+          "type": "string",
+          "pattern": "^(diff|sum|max|min|round)\\([^)]+\\)$",
+          "description": "Built-in function call"
+        }
+      ]
+    },
+    "operation": {
+      "type": "object",
+      "required": ["type", "target"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "set",
+            "add",
+            "subtract",
+            "deduct",
+            "multiply",
+            "divide",
+            "min",
+            "max",
+            "lookup"
+          ],
+          "description": "Type of operation to perform"
+        },
+        "target": {
+          "$ref": "#/$defs/identifier",
+          "description": "Variable to modify"
+        },
+        "value": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/expressionValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Value or expression for the operation"
+        },
+        "table": {
+          "$ref": "#/$defs/identifier",
+          "description": "Table name for lookup operations"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": { "const": "lookup" }
+            }
+          },
+          "then": {
+            "required": ["table", "value"],
+            "properties": {
+              "value": {
+                "not": { "type": "null" }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": ["set", "add", "subtract", "deduct", "multiply", "divide", "min", "max"]
+              }
+            }
+          },
+          "then": {
+            "required": ["value"],
+            "properties": {
+              "value": {
+                "not": { "type": "null" }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "conditionalRule": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 1,
+      "patternProperties": {
+        ".*": {
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "eq": { "$ref": "#/$defs/expressionValue" },
+            "ne": { "$ref": "#/$defs/expressionValue" },
+            "gt": { "$ref": "#/$defs/expressionValue" },
+            "lt": { "$ref": "#/$defs/expressionValue" },
+            "gte": { "$ref": "#/$defs/expressionValue" },
+            "lte": { "$ref": "#/$defs/expressionValue" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "flowStep": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Descriptive name for this calculation step"
+        },
+        "operations": {
+          "type": "array",
+          "description": "Sequential operations to perform",
+          "items": {
+            "$ref": "#/$defs/operation"
+          }
+        },
+        "cases": {
+          "type": "array",
+          "description": "Conditional cases evaluated in order",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["operations"],
+            "additionalProperties": false,
+            "properties": {
+              "when": {
+                "$ref": "#/$defs/conditionalRule",
+                "description": "Condition for this case (omit for default case)"
+              },
+              "operations": {
+                "type": "array",
+                "description": "Operations to perform if condition matches",
+                "items": {
+                  "$ref": "#/$defs/operation"
+                }
+              }
+            }
+          }
+        }
+      },
+      "oneOf": [
+        { "required": ["operations"] },
+        { "required": ["cases"] }
+      ]
+    }
+  }
+}
