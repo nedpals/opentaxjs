@@ -1,0 +1,30 @@
+{
+  "name": "opentaxjs",
+  "version": "0.0.1",
+  "description": "An open-source, rules-based engine for accurate and consistent Philippine tax calculations. Work in progress.",
+  "main": "index.js",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --outfile=dist/index.js --format=cjs --platform=node",
+    "build:esm": "esbuild src/index.ts --bundle --outfile=dist/index.esm.js --format=esm --platform=node",
+    "build:browser": "esbuild src/index.ts --bundle --outfile=dist/index.browser.js --format=iife --platform=browser --global-name=OpenTaxJS",
+    "build:all": "npm run build && npm run build:esm && npm run build:browser",
+    "build:types": "tsc --emitDeclarationOnly",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nedpals/opentaxjs.git"
+  },
+  "author": "Ned Palacios <nedpals@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nedpals/opentaxjs/issues"
+  },
+  "homepage": "https://github.com/nedpals/opentaxjs#readme",
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "esbuild": "^0.25.10",
+    "typescript": "^5.9.2"
+  }
+}
