@@ -108,7 +108,7 @@
                 "max": {
                   "oneOf": [
                     { "type": "number" },
-                    { "type": "string", "pattern": "^\\$\\$[a-z][a-z0-9_]*$" }
+                    { "type": "string", "pattern": "^\\$\\$([a-z][a-z0-9_]*|[A-Z][A-Z0-9_]*)$" }
                   ],
                   "description": "Maximum value for this bracket or constant reference"
                 },
@@ -211,7 +211,7 @@
               },
               {
                 "type": "string",
-                "pattern": "^\\$\\$[a-z][a-z0-9_]*$"
+                "pattern": "^\\$\\$([a-z][a-z0-9_]*|[A-Z][A-Z0-9_]*)$"
               }
             ],
             "description": "Day of month when filing is due or constant reference"
@@ -265,8 +265,8 @@
         },
         {
           "type": "string",
-          "pattern": "^\\$\\$[a-z][a-z0-9_]*$",
-          "description": "Constant reference with $$ prefix"
+          "pattern": "^\\$\\$([a-z][a-z0-9_]*|[A-Z][A-Z0-9_]*)$",
+          "description": "Constant reference with $$ prefix (lowercase for user-defined, UPPERCASE for predefined)"
         },
         {
           "type": "string",

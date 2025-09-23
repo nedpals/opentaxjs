@@ -930,7 +930,7 @@ identifier = [a-z][a-z0-9_]*
 - Must start with a lowercase letter (`a-z`)
 - Can contain lowercase letters, digits, and underscores
 - Cannot start with digits or underscores
-- Cannot contain uppercase letters, spaces, or special characters
+- Cannot contain uppercase letters, spaces, or special characters (except underscores)
 
 **Valid Examples:**
 - `gross_income`
@@ -938,10 +938,12 @@ identifier = [a-z][a-z0-9_]*
 - `liability`
 
 **Invalid Examples:**
-- `GrossIncome` (uppercase letters)
+- `GrossIncome` (contains uppercase letters)
 - `_private` (starts with underscore)
 - `2024_rate` (starts with digit)
 - `tax-rate` (contains hyphen)
+
+**Note:** Predefined constants like `MAX_TAXABLE_INCOME` are exceptions and use ALL_CAPS naming, but user-defined identifiers must follow lowercase conventions.
 
 #### 12.1.2. Variable References
 
