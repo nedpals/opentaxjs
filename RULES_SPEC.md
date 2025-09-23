@@ -20,9 +20,7 @@ This specification is primarily intended for **implementers and contributors** t
 4. [Core Concepts](#4-core-concepts)
    - 4.1. [Rules](#41-rules)
    - 4.2. [Variables](#42-variables)
-     - 4.2.1. [Predefined Variables](#421-predefined-variables)
    - 4.3. [Constants](#43-constants)
-     - 4.3.1. [Predefined Constants](#431-predefined-constants)
    - 4.4. [Tables](#44-tables)
 5. [Rules Format Structure](#5-rules-format-structure)
 6. [Variable System](#6-variable-system)
@@ -38,14 +36,9 @@ This specification is primarily intended for **implementers and contributors** t
     - 11.1. [Predefined Constants](#111-predefined-constants)
     - 11.2. [Predefined Variables](#112-predefined-variables)
     - 11.3. [Built-in Functions](#113-built-in-functions)
-12. [Implementation Philosophy](#12-implementation-philosophy)
-    - 12.1. [Be Forgiving by Default](#121-be-forgiving-by-default)
-    - 12.2. [Embrace Pragmatic Imperfection](#122-embrace-pragmatic-imperfection)
-    - 12.3. [Design for Human Understanding](#123-design-for-human-understanding)
-    - 12.4. [Build Bridges, Not Walls](#124-build-bridges-not-walls)
-    - 12.5. [Evolve Thoughtfully](#125-evolve-thoughtfully)
-    - 12.6. [Trust but Verify](#126-trust-but-verify)
-    - 12.7. [Eliminate Null Values in Calculations](#127-eliminate-null-values-in-calculations)
+12. [Implementation Guidelines](#12-implementation-guidelines)
+    - 12.1. [Grammar](#121-grammar)
+    - 12.2. [Implementation Philosophy](#122-implementation-philosophy)
 
 ## 1. Overview
 
@@ -90,26 +83,9 @@ Variables are containers that hold values for calculations. They can be categori
 
 3. **Calculated Values** (No Prefix): These are values computed during the calculation flow, including both user-defined outputs and system-defined special variables. They represent data from the rule calculation domain (e.g., `taxable_income`, `liability`).
 
-#### 4.2.1. Predefined Variables
-
-The specification defines the following predefined variables that are available in all rules without explicit declaration:
-
-- **`liability`**: The current tax liability being calculated. This variable holds the result of tax calculations at any point in the flow and serves as the primary output for most tax rules.
-
-**Important Notes:**
-- Predefined variables cannot be redeclared in rule files
-- They have no prefix (part of the calculation domain)
-- Attempting to declare them will result in validation errors
-
 ### 4.3. Constants
 
 Constants are fixed values that are used throughout the rule set. They are defined once in the `constants` object and can be referenced in operations and conditions. Constants make rules more maintainable by centralizing values that may change when laws are updated.
-
-#### 4.3.1. Predefined Constants
-
-The specification defines the following predefined constants that are available in all rules without explicit declaration:
-
-- **`$$MAX_TAXABLE_INCOME`**: Set to `9007199254740991` (IEEE 754 maximum safe integer). Used as the upper bound for unlimited tax brackets, ensuring explicit and auditable maximum values.
 
 ### 4.4. Tables
 
@@ -863,11 +839,105 @@ The following built-in functions are available for use in expressions and operat
 
 These functions can be used in conditional expressions and operation values to perform common calculations needed in tax computations.
 
-## 12. Implementation Philosophy
+## 12. Implementation Guidelines
 
-This section outlines the philosophical approach for implementing opentaxjs rule engines. These principles reflect the pragmatic spirit of the specification—prioritizing accessibility and real-world usability over theoretical purity.
+This section provides guidance for implementers, covering both technical specifications and philosophical principles for building opentaxjs rule engines.
 
-### 12.1. Be Forgiving by Default
+### 12.1. Grammar
+
+This subsection defines the formal grammar and syntax rules for opentaxjs-specific elements. Implementations must enforce these rules to ensure consistency and interoperability.
+
+#### 12.1.1. Identifiers
+
+All identifiers (variable names, constant names, table names, etc.) must follow these rules:
+
+**Syntax Pattern:**
+```
+identifier = [a-z][a-z0-9_]*
+```
+
+**Rules:**
+- Must start with a lowercase letter (`a-z`)
+- Can contain lowercase letters, digits, and underscores
+- Cannot start with digits or underscores
+- Cannot contain uppercase letters, spaces, or special characters
+
+**Valid Examples:**
+- `gross_income`
+- `tax_rate_2024`
+- `liability`
+
+**Invalid Examples:**
+- `GrossIncome` (uppercase letters)
+- `_private` (starts with underscore)
+- `2024_rate` (starts with digit)
+- `tax-rate` (contains hyphen)
+
+#### 12.1.2. Variable References
+
+Variable references use prefixes to indicate their domain:
+
+**Syntax Patterns:**
+```
+input_variable = "$" identifier
+constant_variable = "$$" identifier
+calculated_variable = identifier
+```
+
+**Examples:**
+- `$gross_income`, `$deductions` (inputs)
+- `$$tax_rate`, `$$MAX_TAXABLE_INCOME` (constants)
+- `taxable_income`, `liability` (calculated)
+
+**Rules:**
+- Prefixes (`$`, `$$`) are only used in references, never in declarations
+- Variable references are case-sensitive
+- Must reference declared or predefined variables
+
+#### 12.1.3. Function Calls
+
+Function calls are used in expressions and conditional rules:
+
+**Syntax Pattern:**
+```
+function_call = function_name "(" [parameter_list] ")"
+parameter_list = parameter ("," parameter)*
+parameter = variable_reference | function_call | number | boolean
+number = [0-9]+ ("." [0-9]+)?
+boolean = "true" | "false"
+```
+
+**Examples:**
+```
+diff(liability, $gross_income)
+sum($income1, $income2, $income3)
+max(taxable_income, 0)
+round(liability, 2)
+min(tax_rate, 0.25)
+```
+
+**Rules:**
+- Function names must be valid identifiers
+- Parameters can be variable references, nested function calls, numbers, or booleans
+- Numbers can be integers or decimals
+- Booleans are the literals `true` or `false`
+- Nested function calls are allowed
+- Whitespace around commas and parentheses is optional
+
+#### 12.1.4. Validation Rules
+
+Implementations must validate:
+
+1. **Identifier conformance** - All names follow the identifier pattern
+2. **Variable reference validity** - All referenced variables exist or are predefined
+3. **Function call syntax** - Proper parentheses, comma separation, valid parameters
+4. **Prefix consistency** - Prefixes used only in references, not declarations
+
+### 12.2. Implementation Philosophy
+
+This subsection outlines the philosophical approach for implementing opentaxjs rule engines. These principles reflect the pragmatic spirit of the specification—prioritizing accessibility and real-world usability over theoretical purity.
+
+#### 12.2.1. Be Forgiving by Default
 
 **Warn First, Error Only When Asked**
 
@@ -886,7 +956,7 @@ Examples of forgiving behavior:
 - Auto-correct obvious typos in operation names when unambiguous
 - Warn but interpret correctly when variable prefixes are misused (e.g., `$gross_income` in declarations or missing `$` in references)
 
-### 12.2. Embrace Pragmatic Imperfection
+#### 12.2.2. Embrace Pragmatic Imperfection
 
 **Good Enough is Better Than Perfect**
 
@@ -897,7 +967,7 @@ This specification deliberately chooses practical solutions over theoretically o
 - **Accept limitations**: Don't try to solve every possible tax scenario—focus on covering the most common cases well
 - **Optimize for readability**: Code that tax professionals can understand is more valuable than code that computer scientists find beautiful
 
-### 12.3. Design for Human Understanding
+#### 12.2.3. Design for Human Understanding
 
 **Humans Working with Tax Logic Are Your Primary Users**
 
@@ -908,7 +978,7 @@ While the rules are executed by machines, they are written, reviewed, and audite
 - **Make debugging accessible**: Provide execution traces that tax professionals can follow without understanding the implementation
 - **Document with tax examples**: Show how implementation features relate to real tax scenarios
 
-### 12.4. Build Bridges, Not Walls
+#### 12.2.4. Build Bridges, Not Walls
 
 **Enable Integration Rather Than Replacement**
 
@@ -919,7 +989,7 @@ opentaxjs is designed to work alongside existing systems, not replace them entir
 - **Accept data from various sources**: Be flexible about input formats while maintaining rule consistency
 - **Enable gradual adoption**: Allow organizations to migrate one calculation at a time rather than requiring full system replacement
 
-### 12.5. Evolve Thoughtfully
+#### 12.2.5. Evolve Thoughtfully
 
 **Change Should Enhance Accessibility**
 
@@ -930,7 +1000,7 @@ As tax laws and implementation needs evolve, changes should maintain the specifi
 - **Document the reasoning** behind implementation choices so future maintainers understand the trade-offs
 - **Consider the full ecosystem**: Changes should benefit rule authors, auditors, and system integrators
 
-### 12.6. Trust but Verify
+#### 12.2.6. Trust but Verify
 
 **Enable Confidence Through Transparency**
 
@@ -941,7 +1011,7 @@ Tax calculations require high confidence, but this doesn't mean implementations 
 - **Enable testing**: Make it straightforward to test rules with various inputs and verify expected outputs
 - **Facilitate review**: Generate human-readable summaries of rule behavior for non-technical stakeholders
 
-### 12.7. Eliminate Null Values in Calculations
+#### 12.2.7. Eliminate Null Values in Calculations
 
 **Explicit is Better Than Implicit**
 
