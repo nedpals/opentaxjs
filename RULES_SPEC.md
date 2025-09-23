@@ -21,6 +21,7 @@ This specification is primarily intended for **implementers and contributors** t
    - 4.1. [Rules](#41-rules)
    - 4.2. [Variables](#42-variables)
    - 4.3. [Constants](#43-constants)
+     - 4.3.1. [Predefined Constants](#431-predefined-constants)
    - 4.4. [Tables](#44-tables)
 5. [Rules Format Structure](#5-rules-format-structure)
 6. [Variable System](#6-variable-system)
@@ -40,6 +41,7 @@ This specification is primarily intended for **implementers and contributors** t
     - 11.4. [Build Bridges, Not Walls](#114-build-bridges-not-walls)
     - 11.5. [Evolve Thoughtfully](#115-evolve-thoughtfully)
     - 11.6. [Trust but Verify](#116-trust-but-verify)
+    - 11.7. [Eliminate Null Values in Calculations](#117-eliminate-null-values-in-calculations)
 
 ## 1. Overview
 
@@ -87,6 +89,12 @@ Variables are containers that hold values for calculations. They can be categori
 ### 4.3. Constants
 
 Constants are fixed values that are used throughout the rule set. They are defined once in the `constants` object and can be referenced in operations and conditions. Constants make rules more maintainable by centralizing values that may change when laws are updated.
+
+#### 4.3.1. Predefined Constants
+
+The specification defines the following predefined constants that are available in all rules without explicit declaration:
+
+- **`$$MAX_TAXABLE_INCOME`**: Set to `9007199254740991` (IEEE 754 maximum safe integer). Used as the upper bound for unlimited tax brackets, ensuring explicit and auditable maximum values.
 
 ### 4.4. Tables
 
@@ -141,7 +149,7 @@ A complete rule is a JSON object containing all the components needed for tax ca
         },
         {
           "min": 800000,
-          "max": null,
+          "max": "$$MAX_TAXABLE_INCOME",
           "rate": 0.32,
           "base_tax": 130000
         }
@@ -283,12 +291,12 @@ A complete rule is a JSON object containing all the components needed for tax ca
       ]
     },
     {
-      "name": "Apply minimum tax exemption",
+      "name": "Ensure non-negative liability",
       "operations": [
         {
-          "type": "min",
+          "type": "max",
           "target": "liability",
-          "value": "max(taxable_income, 0)"
+          "value": 0
         }
       ]
     }
@@ -306,7 +314,7 @@ A rule file contains these main sections:
 - **`references`**: Array of legal citations and references (statutes, regulations, URLs, etc.)
 - **`effective_from`/`effective_to`**: Date validity range (ISO format)
 - **`jurisdiction`**: Geographic scope using ISO 3166 country code (e.g., "PH")
-- **`taxpayer_type`**: Applicable taxpayer category. Must be one of: `"INDIVIDUAL"`, `"CORPORATION"`, `"PARTNERSHIP"`, `"SOLE_PROPRIETORSHIP"`
+- **`taxpayer_type`**: Applicable taxpayer category. Must be one of: `"INDIVIDUAL"`, `"CORPORATION"`, `"PARTNERSHIP"`, `"SOLE_PROPRIETORSHIP"`. Jurisdictions may extend this list for additional entity types (e.g., `"TRUST"`, `"ESTATE"`) as needed for their specific legal frameworks.
 - **`category`**: Tax type (e.g., "INCOME_TAX", "VAT", "WITHHOLDING_TAX") - optional
 - **`author`**: Rule maintainer (optional)
 
@@ -662,6 +670,8 @@ The lookup operation works by:
 3. Adding the `base_tax` from lower brackets
 4. Setting the result to the target variable
 
+**Note:** For unlimited tax brackets, use the predefined constant `$$MAX_TAXABLE_INCOME` as the `max` value.
+
 **Example calculation:**
 - If `taxable_income` is 500,000 and falls in the 400,000+ bracket (25% rate, 30,000 base tax)
 - Tax = 30,000 + (500,000 - 400,000) × 0.25 = 55,000
@@ -831,7 +841,7 @@ The default mode of operation should be helpful rather than strict. When encount
 This philosophy recognizes that tax rules are often written by domain experts who are not necessarily JSON experts, and that minor formatting inconsistencies shouldn't prevent useful calculations.
 
 Examples of forgiving behavior:
-- Accept both `"deduct"` and `"subtract"` operation types interchangeably  
+- Accept both `"deduct"` and `"subtract"` operation types interchangeably
 - Allow trailing commas in JSON where the parser supports it
 - Warn about unused variables rather than failing
 - Auto-correct obvious typos in operation names when unambiguous
@@ -889,7 +899,31 @@ Tax calculations require high confidence, but this doesn't mean implementations 
 
 - **Make verification easy**: Provide clear audit trails and calculation breakdowns
 - **Support multiple validation levels**: From basic syntax checking to deep semantic validation
-- **Enable testing**: Make it straightforward to test rules with various inputs and verify expected outputs  
+- **Enable testing**: Make it straightforward to test rules with various inputs and verify expected outputs
 - **Facilitate review**: Generate human-readable summaries of rule behavior for non-technical stakeholders
+
+### 11.7. Eliminate Null Values in Calculations
+
+**Explicit is Better Than Implicit**
+
+Null values are prohibited in calculation-related sections of opentaxjs rules because they violate the core principle of auditability and explicitness. This applies to:
+
+- **Operations**: `value`, `target` fields must never be null
+- **Expressions**: All variable references and function parameters must have explicit values
+- **Tables**: `min`, `max`, `rate`, `base_tax` and other calculation fields must be explicit
+- **Constants**: All defined constants must have concrete values
+- **Conditional logic**: All comparison values must be explicit
+
+**Why nulls break calculations:**
+- **Nulls hide intent**: When a calculation value is null, it's unclear whether this represents "unlimited," "not applicable," "zero," or an error
+- **Nulls break auditability**: Tax auditors cannot verify what null means in a tax calculation context
+- **Nulls create implementation inconsistencies**: Different programming languages handle null arithmetic differently
+
+**Instead of nulls in calculations, use:**
+- **Predefined constants**: Use `$$MAX_TAXABLE_INCOME` for unlimited values
+- **Explicit zeros**: Use `0` for amounts that should be zero
+- **Explicit defaults**: Use meaningful default values appropriate to the calculation context
+
+**Note:** Null values are acceptable in metadata fields (`author`, `effective_to`, `category`, etc.) since they don't participate in calculations.
 
 This philosophical approach ensures that opentaxjs implementations remain accessible, practical, and aligned with the real-world needs of tax professionals while maintaining the technical rigor needed for accurate calculations.
