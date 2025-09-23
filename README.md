@@ -19,7 +19,11 @@ This project **DOES NOT** aim to:
 3. Handle complex tax scenarios that require legal or financial advice.
 
 ## Current Status
-The project is still in its early stages of development. I am currently working on the rules file format specification which can be found in the [RULES_SPEC.md](RULES_SPEC.md) file. I would love to get some help improving it in order to cover the different tax types and scenarios under the current tax system before implementing the library.
+The project is still in its early stages of development. Currently:
+- The first draft of the [rules specification](RULES_SPEC.md) is done.
+- An accompanying JSON schema ([draft-01.json](draft-01.json)) has also been created to validate the rules format.
+
+Still, I would love to get some help, particularly in the specification, to improve and to be able to cover the different tax types and scenarios under the current tax system before implementing the library.
 
 ## Proposed API
 
