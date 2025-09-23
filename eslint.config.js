@@ -4,6 +4,7 @@ import tsparser from '@typescript-eslint/parser';
 export default [
   {
     files: ['src/**/*.{ts,js}'],
+    ignores: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
     languageOptions: {
       parser: tsparser,
       parserOptions: {
@@ -20,6 +21,24 @@ export default [
       '@typescript-eslint/no-unused-vars': 'error',
       '@typescript-eslint/explicit-function-return-type': 'warn',
       '@typescript-eslint/no-explicit-any': 'warn',
+    },
+  },
+  {
+    files: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
+    languageOptions: {
+      parser: tsparser,
+      parserOptions: {
+        ecmaVersion: 2020,
+        sourceType: 'module',
+      },
+    },
+    plugins: {
+      '@typescript-eslint': tseslint,
+    },
+    rules: {
+      ...tseslint.configs.recommended.rules,
+      '@typescript-eslint/no-unused-vars': 'error',
+      '@typescript-eslint/explicit-function-return-type': 'off',
     },
   },
 ];
