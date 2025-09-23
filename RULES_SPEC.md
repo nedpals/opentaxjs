@@ -491,7 +491,7 @@ Cases in a `cases` array are evaluated in order. A case without a `when` clause 
       "operations": [
         {
           "type": "set",
-          "target": "liability", 
+          "target": "liability",
           "value": 0
         }
       ]
@@ -719,7 +719,7 @@ Operations can use expressions and function calls in their `value` property. The
 ```json
 {
   "type": "set",
-  "target": "taxable_income", 
+  "target": "taxable_income",
   "value": "$gross_income"
 }
 ```
@@ -797,21 +797,6 @@ Organize operations into logical steps within the flow:
 }
 ```
 
-#### Initialize Variables Before Use
-Always initialize variables before performing calculations:
-
-```json
-{
-  "name": "Initialize liability calculation",
-  "operations": [
-    {
-      "type": "set",
-      "target": "liability",
-      "value": 0
-    }
-  ]
-}
-```
 
 #### Use Meaningful Step Names
 Give each step in the flow a clear, descriptive name:
@@ -1050,7 +1035,18 @@ While the rules are executed by machines, they are written, reviewed, and audite
 - **Make debugging accessible**: Provide execution traces that tax professionals can follow without understanding the implementation
 - **Document with tax examples**: Show how implementation features relate to real tax scenarios
 
-#### 12.2.4. Build Bridges, Not Walls
+#### 12.2.4. Let Rules Define Their Own Variables
+
+**Implicit Initialization is More Natural Than Explicit Setup**
+
+Variables in opentaxjs should emerge naturally from the rule logic rather than requiring separate initialization steps. When a rule first operates on a variable, that operation serves as its initialization:
+
+- **Trust the rule author's intent**: If they set `liability` to 0, that's the initialization—don't require a separate "declare liability" step
+- **Fail clearly on undefined references**: When a rule references a variable that hasn't been set, provide clear error messages in tax terms
+- **Default sensibly for arithmetic**: Numeric operations on undefined variables should assume 0, making calculations more forgiving
+- **Keep the focus on tax logic**: Rule authors should think about tax calculations, not variable management
+
+#### 12.2.5. Build Bridges, Not Walls
 
 **Enable Integration Rather Than Replacement**
 
@@ -1061,7 +1057,7 @@ opentaxjs is designed to work alongside existing systems, not replace them entir
 - **Accept data from various sources**: Be flexible about input formats while maintaining rule consistency
 - **Enable gradual adoption**: Allow organizations to migrate one calculation at a time rather than requiring full system replacement
 
-#### 12.2.5. Evolve Thoughtfully
+#### 12.2.6. Evolve Thoughtfully
 
 **Change Should Enhance Accessibility**
 
@@ -1072,7 +1068,7 @@ As tax laws and implementation needs evolve, changes should maintain the specifi
 - **Document the reasoning** behind implementation choices so future maintainers understand the trade-offs
 - **Consider the full ecosystem**: Changes should benefit rule authors, auditors, and system integrators
 
-#### 12.2.6. Trust but Verify
+#### 12.2.7. Trust but Verify
 
 **Enable Confidence Through Transparency**
 
@@ -1083,7 +1079,7 @@ Tax calculations require high confidence, but this doesn't mean implementations 
 - **Enable testing**: Make it straightforward to test rules with various inputs and verify expected outputs
 - **Facilitate review**: Generate human-readable summaries of rule behavior for non-technical stakeholders
 
-#### 12.2.7. Eliminate Null Values in Calculations
+#### 12.2.8. Eliminate Null Values in Calculations
 
 **Explicit is Better Than Implicit**
 
@@ -1106,5 +1102,16 @@ Null values are prohibited in calculation-related sections of opentaxjs rules be
 - **Explicit defaults**: Use meaningful default values appropriate to the calculation context
 
 **Note:** Null values are acceptable in metadata fields (`author`, `effective_to`, `category`, etc.) since they don't participate in calculations.
+
+#### 12.2.8. Let Rules Define Their Own Variables
+
+**Implicit Initialization is More Natural Than Explicit Setup**
+
+Variables in opentaxjs should emerge naturally from the rule logic rather than requiring separate initialization steps. When a rule first operates on a variable, that operation serves as its initialization:
+
+- **Trust the rule author's intent**: If they set `liability` to 0, that's the initialization—don't require a separate "declare liability" step
+- **Fail clearly on undefined references**: When a rule references a variable that hasn't been set, provide clear error messages in tax terms
+- **Default sensibly for arithmetic**: Numeric operations on undefined variables should assume 0, making calculations more forgiving
+- **Keep the focus on tax logic**: Rule authors should think about tax calculations, not variable management
 
 This philosophical approach ensures that opentaxjs implementations remain accessible, practical, and aligned with the real-world needs of tax professionals while maintaining the technical rigor needed for accurate calculations.
