@@ -1109,15 +1109,4 @@ Null values are prohibited in calculation-related sections of opentaxjs rules be
 
 **Note:** Null values are acceptable in metadata fields (`author`, `effective_to`, `category`, etc.) since they don't participate in calculations.
 
-#### 12.2.8. Let Rules Define Their Own Variables
-
-**Implicit Initialization is More Natural Than Explicit Setup**
-
-Variables in opentaxjs should emerge naturally from the rule logic rather than requiring separate initialization steps. When a rule first operates on a variable, that operation serves as its initialization:
-
-- **Trust the rule author's intent**: If they set `liability` to 0, that's the initialization—don't require a separate "declare liability" step
-- **Fail clearly on undefined references**: When a rule references a variable that hasn't been set, provide clear error messages in tax terms
-- **Default sensibly for arithmetic**: Numeric operations on undefined variables should assume 0, making calculations more forgiving
-- **Keep the focus on tax logic**: Rule authors should think about tax calculations, not variable management
-
 This philosophical approach ensures that opentaxjs implementations remain accessible, practical, and aligned with the real-world needs of tax professionals while maintaining the technical rigor needed for accurate calculations.
