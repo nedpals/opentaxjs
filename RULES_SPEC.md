@@ -526,33 +526,19 @@ Cases in a `cases` array are evaluated in order. A case without a `when` clause 
 
 ## 9. Expressions
 
-Expressions are used in conditional rules and operations to reference variables and perform calculations. They provide a way to dynamically compute values and make decisions based on the current state of variables.
+Expressions are strings used in conditional rules and operations to reference variables, call functions, or provide literal values. They are the primary mechanism for dynamic computation within a rule.
 
-### 9.1. Variable References
+An expression can be one of the following:
 
-Variables in expressions follow the same referencing system described in [Variables](#42-variables). Use the appropriate prefix based on the variable's source domain:
+-   A **Variable Reference**, which uses prefixes to denote the variable's domain (e.g., `$gross_income`, `$$tax_rate`, `taxable_income`). For the formal syntax, see [Variable References (12.1.2)](#1212-variable-references).
 
-- **Inputs**: `$gross_income`, `$deductions`
-- **Constants**: `$$tax_exempt_threshold`, `$$standard_deduction`
-- **Outputs/Special**: `taxable_income`, `liability`
+-   A **Function Call**, which executes a built-in calculation (e.g., `max(taxable_income, 0)`). For a complete list of available functions, see the **[Standard Library (11.3)](#113-built-in-functions)**.
 
-Expressions can also include **function calls** that operate on variables:
-```json
-"diff(liability, $gross_income)"
-```
+-   A **Literal Value**, such as a number (`250000`) or a boolean (`true`).
 
-### 9.2. Built-in Functions
+**Examples:**
 
-The following built-in functions are available for use in expressions:
-
-- `diff(a, b)`: Returns the absolute difference between two values `|a - b|`
-- `sum(a, b, ...)`: Returns the sum of all provided values
-- `max(a, b, ...)`: Returns the maximum value among the provided values
-- `min(a, b, ...)`: Returns the minimum value among the provided values
-- `round(value, decimals?)`: Rounds a value to the specified number of decimal places (default: 0)
-
-### 9.3. Expression Examples
-
+The following `when` block uses an expression with a function call to determine if a condition is met:
 ```json
 {
   "when": {
@@ -563,13 +549,12 @@ The following built-in functions are available for use in expressions:
 }
 ```
 
+The following operation uses an expression with a variable reference as its value:
 ```json
 {
-  "when": {
-    "diff(liability, 0)": {
-      "gt": 1000
-    }
-  }
+  "type": "set",
+  "target": "taxable_income",
+  "value": "$gross_income"
 }
 ```
 
