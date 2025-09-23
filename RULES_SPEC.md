@@ -28,6 +28,8 @@ This specification is primarily intended for **implementers and contributors** t
    - 6.2. [Variable Referencing System](#62-variable-referencing-system)
 7. [Filing Schedules](#7-filing-schedules)
 8. [Conditional Rules](#8-conditional-rules)
+   - 8.1. [Operators](#81-operators)
+   - 8.2. [Default Cases](#82-default-cases)
 9. [Expressions](#9-expressions)
 10. [Operations](#10-operations)
     - 10.1. [Operation Types](#101-operation-types)
@@ -471,6 +473,57 @@ The following operators can be used in conditional rules:
 - `gte`: Greater than or equal to
 - `lte`: Less than or equal to
 
+### 8.2. Default Cases
+
+Cases in a `cases` array are evaluated in order. A case without a `when` clause serves as the default (else) case and will be executed if no previous conditions match.
+
+**Example with default case:**
+```json
+{
+  "name": "Apply tax rate based on income level",
+  "cases": [
+    {
+      "when": {
+        "taxable_income": {
+          "lte": "$$tax_exempt_threshold"
+        }
+      },
+      "operations": [
+        {
+          "type": "set",
+          "target": "liability", 
+          "value": 0
+        }
+      ]
+    },
+    {
+      "operations": [
+        {
+          "type": "set",
+          "target": "liability",
+          "value": "taxable_income"
+        },
+        {
+          "type": "deduct",
+          "target": "liability",
+          "value": "$$tax_exempt_threshold"
+        },
+        {
+          "type": "multiply",
+          "target": "liability",
+          "value": "$$basic_tax_rate"
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Rules:**
+- Default cases (without `when`) must be the last case in the array
+- Only one default case is allowed per `cases` array
+- If no conditions match and no default case exists, no operations are performed
+
 ## 9. Expressions
 
 Expressions are used in conditional rules and operations to reference variables and perform calculations. They provide a way to dynamically compute values and make decisions based on the current state of variables.
@@ -660,23 +713,40 @@ The lookup operation works by:
 
 ### Using Expressions in Operations
 
-Operations can use expressions and function calls in their `value` property:
+Operations can use expressions and function calls in their `value` property. The following expression types are supported:
 
+**Variable References:**
 ```json
 {
   "type": "set",
-  "target": "adjusted_income",
-  "value": "max($gross_income - $deductions, 0)"
+  "target": "taxable_income", 
+  "value": "$gross_income"
 }
 ```
 
+**Function Calls:**
+```json
+{
+  "type": "set",
+  "target": "liability",
+  "value": "max(taxable_income, 0)"
+}
+```
+
+**Literal Values:**
 ```json
 {
   "type": "multiply",
   "target": "liability",
-  "value": "sum($$base_rate, $$additional_rate)"
+  "value": 0.25
 }
 ```
+
+**Expression Scope Limitations:**
+- Complex arithmetic expressions (e.g., `"($gross_income - $$deduction) * $$rate"`) are **not supported**
+- Only single variable references, single function calls, or literal values are allowed
+- This maintains auditability by keeping each operation atomic and traceable
+- Multi-step calculations must be broken into separate operations with intermediate variables
 
 ### 10.2. Operation Best Practices
 
@@ -917,7 +987,7 @@ min(tax_rate, 0.25)
 ```
 
 **Rules:**
-- Function names must be valid identifiers
+- Function names must conform to the `identifier` syntax defined in section 12.1.1
 - Parameters can be variable references, nested function calls, numbers, or booleans
 - Numbers can be integers or decimals
 - Booleans are the literals `true` or `false`
