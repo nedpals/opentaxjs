@@ -110,7 +110,6 @@ A complete rule is a JSON object containing all the components needed for tax ca
   "effective_from": "2024-01-01",
   "jurisdiction": "PH",
   "taxpayer_type": "INDIVIDUAL",
-  "category": "INCOME_TAX",
   "author": "Bureau of Internal Revenue",
   "constants": {
     "tax_exempt_threshold": 250000,
@@ -306,9 +305,9 @@ A rule file contains these main sections:
 - **`name`**: Human-readable rule identifier
 - **`references`**: Array of legal citations and references (statutes, regulations, URLs, etc.)
 - **`effective_from`/`effective_to`**: Date validity range (ISO format)
-- **`jurisdiction`**: Geographic scope (e.g., "PH", "US")
-- **`taxpayer_type`**: Applicable taxpayer category ("INDIVIDUAL", "CORPORATION", etc.)
-- **`category`**: Tax type ("INCOME_TAX", "VAT", etc.)
+- **`jurisdiction`**: Geographic scope using ISO 3166 country code (e.g., "PH")
+- **`taxpayer_type`**: Applicable taxpayer category. Must be one of: `"INDIVIDUAL"`, `"CORPORATION"`, `"PARTNERSHIP"`, `"SOLE_PROPRIETORSHIP"`
+- **`category`**: Tax type (e.g., "INCOME_TAX", "VAT", "WITHHOLDING_TAX") - optional
 - **`author`**: Rule maintainer (optional)
 
 #### Calculation Components
