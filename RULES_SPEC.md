@@ -869,13 +869,17 @@ The opentaxjs specification defines a standard library of predefined constants, 
 
 The specification defines the following predefined constants that are available in all rules:
 
-- **`$$MAX_TAXABLE_INCOME`**: Set to `9007199254740991` (IEEE 754 maximum safe integer). Used as the upper bound for unlimited tax brackets, ensuring explicit and auditable maximum values.
+| Name | Value | Description |
+|------|-------|-------------|
+| `$$MAX_TAXABLE_INCOME` | `9007199254740991` | IEEE 754 maximum safe integer. Used as the upper bound for unlimited tax brackets, ensuring explicit and auditable maximum values. |
 
 ### 11.2. Predefined Variables
 
 The specification defines the following predefined variables that are available in all rules:
 
-- **`liability`**: The current tax liability being calculated. This variable holds the result of tax calculations at any point in the flow and serves as the primary output for most tax rules.
+| Name | Type | Description |
+|------|------|-------------|
+| `liability` | Number | The current tax liability being calculated. This variable holds the result of tax calculations at any point in the flow and serves as the primary output for most tax rules. |
 
 **Important Notes:**
 - Predefined variables cannot be redeclared in rule files
@@ -886,11 +890,13 @@ The specification defines the following predefined variables that are available 
 
 The following built-in functions are available for use in expressions and operations:
 
-- **`diff(a, b)`**: Returns the absolute difference between two values `|a - b|`
-- **`sum(a, b, ...)`**: Returns the sum of all provided values
-- **`max(a, b, ...)`**: Returns the maximum value among the provided values
-- **`min(a, b, ...)`**: Returns the minimum value among the provided values
-- **`round(value, decimals?)`**: Rounds a value to the specified number of decimal places (default: 0)
+| Function | Parameters | Description |
+|----------|------------|-------------|
+| `diff(a, b)` | `a`, `b`: Numbers | Returns the absolute difference between two values `|a - b|` |
+| `sum(a, b, ...)` | `...`: Numbers | Returns the sum of all provided values |
+| `max(a, b, ...)` | `...`: Numbers | Returns the maximum value among the provided values |
+| `min(a, b, ...)` | `...`: Numbers | Returns the minimum value among the provided values |
+| `round(value, decimals?)` | `value`: Number, `decimals?`: Number (default: 0) | Rounds a value to the specified number of decimal places |
 
 These functions can be used in conditional expressions and operation values to perform common calculations needed in tax computations.
 
