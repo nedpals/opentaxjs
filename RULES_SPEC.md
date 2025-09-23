@@ -36,6 +36,14 @@ This specification is primarily intended for **implementers and contributors** t
 
 ## 1. Overview
 
+The opentaxjs rules format is a JSON-based specification for expressing tax calculations in a standardized, declarative manner. This specification covers the complete structure and syntax needed to create tax calculation rules that are portable across different implementations and programming languages.
+
+This document is organized into conceptual sections that build upon each other:
+- **Core concepts** introduce the fundamental building blocks (rules, variables, constants, tables)
+- **Structural sections** detail the JSON format and organization 
+- **Operational sections** explain how calculations flow through conditions, expressions, and operations
+- **Practical sections** cover filing schedules and implementation best practices
+
 ## 2. Features and Goals
 
 1. **Human-readable while still machine-readable**: It should be designed to be easily understandable and modifiable by humans, while also being structured in a way that machines can easily parse and execute the rules.
@@ -79,7 +87,9 @@ Tables define structured data used for calculations, primarily progressive tax b
 
 ## 5. Rules Format Structure
 
-> DISCLAIMER: This is not the actual calculation logic but only to demonstrate the kitchen sink features that is defined in the format.
+A complete rule is a JSON object containing all the components needed for tax calculation. The following example demonstrates the key structure and features:
+
+> **Example Note**: This is a demonstration of the format's capabilities, not actual calculation logic.
 
 ```json
 {
@@ -276,40 +286,35 @@ Tables define structured data used for calculations, primarily progressive tax b
 }
 ```
 
-A rules file is a JSON object that contains the following properties:
+### 5.1. Rule Structure Overview
 
-- **`$version`**: The version of the rules file format. This is used to ensure compatibility with the opentaxjs library.
-- **`name`**: The name of the rule set. This is used to identify the rule set in the opentaxjs library.
-- **`law_basis`**: The legal foundation for the tax rules (e.g., "Republic Act No. 8424 (Tax Reform Act of 1997)").
-- **`effective_from`**: The date when these rules become effective (ISO date format: "YYYY-MM-DD").
-- **`effective_to`**: Optional date when these rules expire or are superseded (ISO date format: "YYYY-MM-DD").
-- **`jurisdiction`**: The jurisdiction where these rules apply (e.g., "PH" for Philippines, "US" for United States).
-- **`taxpayer_type`**: The type of taxpayer these rules apply to (e.g., "INDIVIDUAL", "CORPORATION", "PARTNERSHIP").
-- **`category`**: The category of tax being calculated (e.g., "INCOME_TAX", "VAT", "WITHHOLDING_TAX").
-- **`author`**: Optional field indicating who created or maintains these rules.
-- **`constants`**: An object that defines law-defined fixed values used throughout the rule set (using `$$` prefix). This makes it easy to update values when laws change without modifying the calculation logic.
-- **`tables`**: An array of objects that define data tables, primarily used for progressive tax brackets and lookup tables. Each table has a `name` and structure for bracket-based calculations.
-- **`inputs`**: An object that defines the user-provided inputs required for the rule set (using `$` prefix). They follow the [JSON Schema](https://json-schema.org/) format, which is a standard for describing the structure of JSON data. Each input has a `type` and a `description`.
-- **`outputs`**: An object that defines the calculated outputs of the rule set (using no prefix). This is also in the [JSON Schema](https://json-schema.org/) format. Outputs are typically used to store intermediate results or final results of the calculations.
-- **`filing_schedules`**: An array of objects that define the filing schedules for the rule set. Each object contains:
-  - `name`: The name of the filing schedule.
-  - `frequency`: The frequency of the filing (e.g., "quarterly", "annual").
-  - `filing_day`: The day of the month when the filing is due.
-  - `when`: An optional condition that determines when the filing schedule should be applied. This is an expression that can reference the outputs of the rule set.
-- **`flow`**: An array of objects that define the flow of the rule set. Each object contains:
-  - `name`: A descriptive name for the step in the flow.
-  - `operations`: An array of operations to be performed in this step. Each operation can be one of the following types:
-    - `set`: Sets a value to a target variable.
-    - `multiply`: Multiplies a target variable by a value.
-    - `deduct`: Deducts a value from a target variable.
-  - `cases`: An optional array of cases that define conditional operations. Each case has:
-    - `when`: A condition that must be met for the case to be applied. This is an expression that can reference the inputs and outputs of the rule set.
-    - `operations`: An array of operations to be performed if the condition is met.
+A rule file contains these main sections:
+
+#### Metadata Properties
+- **`$version`**: Format version for compatibility checking
+- **`name`**: Human-readable rule identifier  
+- **`law_basis`**: Legal foundation reference
+- **`effective_from`/`effective_to`**: Date validity range (ISO format)
+- **`jurisdiction`**: Geographic scope (e.g., "PH", "US")
+- **`taxpayer_type`**: Applicable taxpayer category ("INDIVIDUAL", "CORPORATION", etc.)
+- **`category`**: Tax type ("INCOME_TAX", "VAT", etc.)
+- **`author`**: Rule maintainer (optional)
+
+#### Calculation Components
+- **`constants`**: Law-defined fixed values (detailed in [Constants](#43-constants))
+- **`tables`**: Progressive brackets and lookup data (detailed in [Tables](#44-tables))  
+- **`inputs`**: Required taxpayer data (detailed in [Variables](#42-variables))
+- **`outputs`**: Calculated results (detailed in [Variables](#42-variables))
+- **`filing_schedules`**: Due dates and forms (detailed in [Filing Schedules](#7-filing-schedules))
+- **`flow`**: Calculation sequence (detailed in [Operations](#10-operations))
 
 ## 6. Variable System
 
+For the basic concepts of variables, constants, and tables, see [Core Concepts](#4-core-concepts). This section covers implementation details for working with variables.
+
 ### 6.1. Variable Declaration
-Variables declared in the `inputs` and `outputs` are using [JSON Schema](https://json-schema.org/) format. This means that properties such as `minimum`, `maximum`, `enum`, and `pattern` can be used to define the constraints and structure of the variables. For example,
+
+Variables declared in the `inputs` and `outputs` sections use [JSON Schema](https://json-schema.org/) format for validation and documentation. This allows you to specify constraints and structure:
 
 ```json
 {
@@ -320,93 +325,46 @@ Variables declared in the `inputs` and `outputs` are using [JSON Schema](https:/
 }
 ```
 
-Special variables **cannot** be redeclared in the rules file and will be thrown an error if attempted. They are predefined variables that are used in the calculations and flow of the rules file.
+**Common JSON Schema properties for variables:**
+- `type`: Data type ("number", "string", "boolean", "array", "object")
+- `description`: Human-readable explanation
+- `minimum`/`maximum`: Numeric bounds
+- `enum`: List of allowed values
+- `pattern`: Regular expression for string validation
 
-### 6.2. Variable Referencing System
+**Declaration Rules:**
+- Variable names must not include prefixes (`$` or `$$`) in declarations
+- Names should use lowercase with underscores (`tax_exempt_threshold`)
+- Names must be unique within their section (inputs, outputs, constants)
 
-Variables are referenced using prefixes that indicate their source/authority domain. This eliminates ambiguity while maintaining readability and aligns with how tax professionals think about data sources.
+### 6.2. Special Variables
 
-**Important Distinction:**
-- **Declaration**: When defining variables in their respective sections, use clean names without prefixes
-- **Reference**: When using variables in operations and conditions, use prefixes to indicate source
+Special variables are system-defined and available throughout the rule without explicit declaration:
 
-**Implementation Note:**
-Implementers should validate variable declarations and warn users (or throw errors in strict mode) if prefixes are accidentally used in declarations. For example:
+- **`liability`**: The current tax liability being calculated. This variable holds the result of tax calculations at any point in the flow and serves as the primary output for most tax rules.
 
-**❌ Invalid (should trigger warning/error):**
-```json
-{
-  "inputs": {
-    "$gross_income": { "type": "number" }  // Error: prefix in declaration
-  },
-  "constants": {
-    "$$tax_rate": 0.32  // Error: prefix in declaration
-  }
-}
-```
-
-**✅ Valid:**
-```json
-{
-  "inputs": {
-    "gross_income": { "type": "number" }  // Correct: no prefix
-  },
-  "constants": {
-    "tax_rate": 0.32  // Correct: no prefix
-  }
-}
-```
-
-#### Declaration Syntax (No Prefixes)
-
-Variables are declared in their sections without prefixes:
-
-```json
-{
-  "inputs": {
-    "gross_income": { "type": "number", "description": "..." }
-  },
-  "constants": {
-    "tax_exempt_threshold": 250000
-  },
-  "outputs": {
-    "taxable_income": { "type": "number", "description": "..." }
-  }
-}
-```
-
-#### Reference Syntax (With Prefixes)
-
-Variables are referenced based on their authority/source domain:
-
-1. **User Domain** (`$` Prefix): Values provided by the taxpayer
-   - **Inputs**: `$gross_income`, `$deductions`, `$is_freelance`
-
-2. **Legal Domain** (`$$` Prefix): Values defined by tax law and regulations
-   - **Constants**: `$$tax_exempt_threshold`, `$$standard_deduction`, `$$freelance_tax_rate`
-
-3. **Calculation Domain** (No Prefix): Values computed by the rule system
-   - **Outputs**: `taxable_income`, `cumulative_gross_income`
-   - **Special Variables**: `liability`
-
-### 6.3. Special Variables
-
-Special variables are system-defined variables that are used in calculations but not declared in other sections. They have no prefix (part of the calculation domain) and are available throughout the rules file. Some common special variables include:
-- `liability`: Represents the current tax liability being calculated. This is the variable that holds the result of the tax calculation at any given point in the flow.
+**Important Notes:**
+- Special variables cannot be redeclared in rule files
+- They have no prefix (part of the calculation domain)
+- Attempting to declare them will result in validation errors
 
 ## 7. Filing Schedules
-Filing schedules define when tax filings are due. They define how frequent and when the tax filings should be made.
 
-Each filing schedule has the following properties:
-- `name`: The name of the filing schedule.
-- `frequency`: The frequency of the filing
-  - `quarterly`: Filing is due every quarter (every 3 months).
-  - `annual`: Filing is due once a year.
-- `when`: An optional condition that determines when the filing schedule should be applied. This is an expression that can reference the outputs of the rule set. If this condition is not met, the filing schedule will not be applied.
-- `filing_day`: The day of the month when the filing is due. This is typically a number between 1 and 31, depending on the month. If the day exceeds the number of days in the month, it will be adjusted to the last day of the month.
-- `forms`: An object that specifies the required tax forms and supporting documents for this filing schedule.
-  - `primary`: The main form number required for the filing (e.g., "1701Q" for quarterly individual income tax).
-  - `attachments`: An array of supporting documents or additional forms that must be submitted with the primary form.
+Filing schedules define when tax filings are due and specify the required forms and documentation.
+
+### 7.1. Schedule Properties
+
+Each filing schedule contains the following properties:
+
+- **`name`**: The name of the filing schedule
+- **`frequency`**: The frequency of the filing:
+  - `quarterly`: Filing is due every quarter (every 3 months)
+  - `annual`: Filing is due once a year
+- **`filing_day`**: The day of the month when the filing is due (1-31). If the day exceeds the number of days in the month, it will be adjusted to the last day of the month
+- **`when`**: Optional condition that determines when the filing schedule applies. This is an expression that can reference rule outputs. If this condition is not met, the filing schedule will not be applied
+- **`forms`**: Object specifying required tax forms and supporting documents:
+  - `primary`: The main form number required for the filing (e.g., "1701Q" for quarterly individual income tax)
+  - `attachments`: Array of supporting documents or additional forms that must be submitted with the primary form
 
 ### Example Filing Schedule
 ```json
@@ -494,12 +452,12 @@ Conditional rules allows you to run specific operations or schedules based on ce
 At its core, a conditional rule is an `object` that contains the expression to be evaluated and the expected value to compare against, by explicitly telling the operator to use and the value to compare. For example:
 
 ```json
-"cummulative_gross_income": {
+"cumulative_gross_income": {
   "lt": 250000
 }
 ```
 
-In this case `cummulative_gross_income` is the variable being evaluated, `lt` is the operator (less than), and `250000` is the value to compare against.
+In this case `cumulative_gross_income` is the variable being evaluated, `lt` is the operator (less than), and `250000` is the value to compare against.
 
 ### 8.1. Operators
 
@@ -519,28 +477,16 @@ Expressions are used in conditional rules and operations to reference variables 
 
 ### 9.1. Variable References
 
-Variables can be referenced in three different ways:
+Variables in expressions follow the same referencing system described in [Variables](#42-variables). Use the appropriate prefix based on the variable's source domain:
 
-1. **User domain reference**: For inputs, use the `$` prefix.
-   ```json
-   "$gross_income"
-   ```
+- **Inputs**: `$gross_income`, `$deductions`
+- **Constants**: `$$tax_exempt_threshold`, `$$standard_deduction`  
+- **Outputs/Special**: `taxable_income`, `liability`
 
-2. **Legal domain reference**: For constants, use the `$$` prefix.
-   ```json
-   "$$tax_exempt_threshold"
-   ```
-
-3. **Calculation domain reference**: For outputs and special variables, use no prefix.
-   ```json
-   "taxable_income"
-   "liability"
-   ```
-
-4. **Function calls**: Use built-in functions to perform calculations on variables.
-   ```json
-   "diff(liability, $gross_income)"
-   ```
+Expressions can also include **function calls** that operate on variables:
+```json
+"diff(liability, $gross_income)"
+```
 
 ### 9.2. Built-in Functions
 
@@ -734,7 +680,7 @@ Operations can use expressions and function calls in their `value` property:
 
 When writing operations, follow these best practices to ensure clarity and maintainability:
 
-### 1. Use Descriptive Variable Names
+#### Use Descriptive Variable Names
 Choose variable names that clearly describe what they represent:
 
 ```json
@@ -753,7 +699,7 @@ Choose variable names that clearly describe what they represent:
 }
 ```
 
-### 2. Group Related Operations
+#### Group Related Operations
 Organize operations into logical steps within the flow:
 
 ```json
@@ -779,7 +725,7 @@ Organize operations into logical steps within the flow:
 }
 ```
 
-### 3. Initialize Variables Before Use
+#### Initialize Variables Before Use
 Always initialize variables before performing calculations:
 
 ```json
@@ -795,7 +741,7 @@ Always initialize variables before performing calculations:
 }
 ```
 
-### 4. Use Meaningful Step Names
+#### Use Meaningful Step Names
 Give each step in the flow a clear, descriptive name:
 
 ```json
@@ -809,7 +755,7 @@ Give each step in the flow a clear, descriptive name:
 }
 ```
 
-### 5. Handle Edge Cases
+#### Handle Edge Cases
 Use conditional cases to handle different scenarios:
 
 ```json
