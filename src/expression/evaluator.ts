@@ -62,7 +62,7 @@ export interface BuiltinSymbols {
   variables?: Record<string, number | boolean>;
 }
 
-class SymbolRegistry {
+export class SymbolRegistry {
   private symbols: Map<string, SymbolInfo> = new Map();
 
   constructor(builtins?: BuiltinSymbols) {
