@@ -33,8 +33,9 @@ For more details on the direction of this project, please refer to [ROADMAP.md](
 
 ```typescript
 import opentax from 'opentaxjs';
+import incomeTaxRule from './bir/income_tax.json';
 
-const incomeTax = opentax({ rule: "./bir/income_tax.json" }).calculate({
+const incomeTax = opentax({ rule: incomeTaxRule }).calculate({
   gross_income: 500000,
   deductions: 100000,
   is_freelance: true
