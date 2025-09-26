@@ -29,6 +29,7 @@ This specification is primarily intended for **implementers and contributors** t
 7. [Filing Schedules](#7-filing-schedules)
 8. [Conditional Rules](#8-conditional-rules)
    - 8.1. [Operators](#81-operators)
+   - 8.1.1. [Logical Operator Syntax](#811-logical-operator-syntax)
    - 8.2. [Default Cases](#82-default-cases)
 9. [Expressions](#9-expressions)
 10. [Operations](#10-operations)
@@ -466,12 +467,124 @@ In this case `cumulative_gross_income` is the variable being evaluated, `lt` is 
 Each rule must have an operator that defines how the condition is evaluated. The operator is a string that specifies the type of comparison to be made. They are case-sensitive and the value can be a number, string, or boolean depending on the context of the variable being evaluated.
 
 The following operators can be used in conditional rules:
+
+#### Comparison Operators
 - `eq`: Equal to
 - `ne`: Not equal to
 - `gt`: Greater than
 - `lt`: Less than
 - `gte`: Greater than or equal to
 - `lte`: Less than or equal to
+
+#### Logical Operators
+- `and`: Logical AND - all conditions must be true
+- `or`: Logical OR - at least one condition must be true
+- `not`: Logical NOT - negates the condition
+
+### 8.1.1. Logical Operator Syntax
+
+Logical operators allow you to combine multiple conditions to create complex conditional logic.
+
+#### AND Operator
+
+The `and` operator requires all conditions in an array to be true:
+
+```json
+{
+  "when": {
+    "and": [
+      {
+        "age": {
+          "gte": 60
+        }
+      },
+      {
+        "annual_income": {
+          "lte": 500000
+        }
+      }
+    ]
+  }
+}
+```
+
+#### OR Operator
+
+The `or` operator requires at least one condition in an array to be true:
+
+```json
+{
+  "when": {
+    "or": [
+      {
+        "filing_status": {
+          "eq": "single"
+        }
+      },
+      {
+        "filing_status": {
+          "eq": "head_of_household"
+        }
+      }
+    ]
+  }
+}
+```
+
+#### NOT Operator
+
+The `not` operator negates a condition:
+
+```json
+{
+  "when": {
+    "not": {
+      "taxpayer_type": {
+        "eq": "tax_exempt_organization"
+      }
+    }
+  }
+}
+```
+
+#### Nested Logical Operators
+
+Logical operators can be nested to create complex conditions:
+
+```json
+{
+  "when": {
+    "and": [
+      {
+        "or": [
+          {
+            "filing_status": {
+              "eq": "single"
+            }
+          },
+          {
+            "filing_status": {
+              "eq": "married_separate"
+            }
+          }
+        ]
+      },
+      {
+        "not": {
+          "is_senior_citizen": {
+            "eq": true
+          }
+        }
+      },
+      {
+        "taxable_income": {
+          "gt": 250000
+        }
+      }
+    ]
+  }
+}
+```
 
 ### 8.2. Default Cases
 
@@ -819,11 +932,6 @@ Use conditional cases to handle different scenarios:
       ]
     },
     {
-      "when": {
-        "taxable_income": {
-          "gt": "$$tax_exempt_threshold"
-        }
-      },
       "operations": [
         {
           "type": "set",
@@ -845,6 +953,8 @@ Use conditional cases to handle different scenarios:
   ]
 }
 ```
+
+**Note:** This example demonstrates best practices by using a default case (without `when`) for the else condition instead of explicitly checking the opposite condition (`gt`). This makes the rule more maintainable and easier to understand.
 
 ## 11. Standard Library
 
