@@ -4,20 +4,33 @@ This document outlines the current status, deliberate design decisions, and futu
 
 > *This roadmap is a living document and will be updated as the project evolves and community feedback is incorporated.*
 
-## Current Status (v0.0.1)
+## Current Status
 
-OpenTaxJS is in its foundational phase, providing:
+The project is still in its early stages of development. Currently:
+- The first draft of the rules specification is done.
+- An accompanying JSON schema has been created to validate the rules format.
+- Infrastructure for the development of the library is already setup.
+- The expression parser and evaluator have been implemented.
 
-- **Core rule engine** with atomic operations (set, add, subtract, multiply, divide, min, max, lookup)
-- **Progressive tax bracket support** via table lookups
-- **Conditional logic** with comparison operators (eq, ne, gt, lt, gte, lte) and logical operators (and, or, not)
-- **Variable system** with clear domain separation (inputs, constants, calculated values)
-- **Filing schedules** for compliance requirements
-- **Standard library** with predefined constants, variables, and functions
+## Library Implementation Roadmap
 
-The specification is stable for basic tax calculation scenarios and ready for implementation across different programming languages.
+### 🚧 Rules Loading and Validation
 
-## Future Considerations
+> **Status**: In progress. Core functionality for loading and validating rule files.
+
+**Current Progress**: Basic rule loading infrastructure and JSON schema validation.
+
+**Next Steps**: Complete rule file resolution, error handling, and validation reporting.
+
+### 🚧 Public API
+
+> **Status**: In progress. Implementing the API as outlined in the README.
+
+**Current Progress**: Core API structure and TypeScript interfaces defined.
+
+**Next Steps**: Complete calculation engine integration and result formatting.
+
+## Specification Roadmap
 
 These features are **under evaluation** and may be added in future versions based on real-world usage and community feedback.
 

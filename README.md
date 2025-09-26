@@ -23,8 +23,11 @@ The project is still in its early stages of development. Currently:
 - The first draft of the [rules specification](RULES_SPEC.md) is done.
 - An accompanying JSON schema ([draft-01.json](draft-01.json)) has also been created to validate the rules format.
 - Infrastructure for the development of the library is already setup.
+- The expression parser and evaluator have been implemented.
 
 Still, I would love to get some help, particularly in the specification, to improve and to be able to cover the different tax types and scenarios under the current tax system before implementing the library.
+
+For more details on the direction of this project, please refer to [ROADMAP.md](ROADMAP.md)
 
 ## Proposed API
 
