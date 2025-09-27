@@ -24,22 +24,20 @@ export class RuleEvaluator {
   evaluate(
     rule: Rule,
     inputs: Record<string, number | boolean> = {}
-  ): Record<string, number | boolean> {
+  ): EvaluationContext {
     try {
       const context = this.createContext(rule, inputs);
       const finalContext = this.processFlow(rule.flow, context);
-      const results: Record<string, number | boolean> = {};
 
       for (const outputName of Object.keys(rule.outputs)) {
-        if (outputName in finalContext.calculated) {
-          results[outputName] = finalContext.calculated[outputName];
-        } else {
+        if (!(outputName in finalContext.calculated)) {
           const outputType = rule.outputs[outputName].type;
-          results[outputName] = outputType === 'boolean' ? false : 0;
+          finalContext.calculated[outputName] =
+            outputType === 'boolean' ? false : 0;
         }
       }
 
-      return results;
+      return finalContext;
     } catch (error) {
       if (
         error instanceof RuleEvaluationError ||

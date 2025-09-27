@@ -43,7 +43,7 @@ describe('RuleEvaluator', () => {
       };
 
       const result = evaluator.evaluate(rule, { income: 50000 });
-      expect(result.liability).toBe(50000);
+      expect(result.calculated.liability).toBe(50000);
     });
 
     it('should process arithmetic operations', () => {
@@ -122,8 +122,8 @@ describe('RuleEvaluator', () => {
         deductions: 10000
       });
 
-      expect(result.taxable_income).toBe(50000);
-      expect(result.liability).toBe(7500); // 50000 * 0.15
+      expect(result.calculated.taxable_income).toBe(50000);
+      expect(result.calculated.liability).toBe(7500); // 50000 * 0.15
     });
 
     it('should handle conditional cases', () => {
@@ -189,13 +189,13 @@ describe('RuleEvaluator', () => {
         income: 50000,
         is_senior: true
       });
-      expect(seniorResult.exemption).toBe(20000);
+      expect(seniorResult.calculated.exemption).toBe(20000);
 
       const regularResult = evaluator.evaluate(rule, {
         income: 50000,
         is_senior: false
       });
-      expect(regularResult.exemption).toBe(10000);
+      expect(regularResult.calculated.exemption).toBe(10000);
     });
 
     it('should handle lookup operations with tax brackets', () => {
@@ -246,15 +246,15 @@ describe('RuleEvaluator', () => {
 
       // Test first bracket (0-10000)
       const lowIncomeResult = evaluator.evaluate(rule, { taxable_income: 5000 });
-      expect(lowIncomeResult.liability).toBe(500); // 5000 * 0.1 + 0
+      expect(lowIncomeResult.calculated.liability).toBe(500); // 5000 * 0.1 + 0
 
       // Test second bracket (10000-50000)
       const midIncomeResult = evaluator.evaluate(rule, { taxable_income: 30000 });
-      expect(midIncomeResult.liability).toBe(5000); // (30000-10000) * 0.2 + 1000 = 20000 * 0.2 + 1000 = 4000 + 1000
+      expect(midIncomeResult.calculated.liability).toBe(5000); // (30000-10000) * 0.2 + 1000 = 20000 * 0.2 + 1000 = 4000 + 1000
 
       // Test third bracket (50000+)
       const highIncomeResult = evaluator.evaluate(rule, { taxable_income: 100000 });
-      expect(highIncomeResult.liability).toBe(24000); // (100000-50000) * 0.3 + 9000 = 50000 * 0.3 + 9000
+      expect(highIncomeResult.calculated.liability).toBe(24000); // (100000-50000) * 0.3 + 9000 = 50000 * 0.3 + 9000
     });
   });
 });
