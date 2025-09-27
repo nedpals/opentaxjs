@@ -22,9 +22,9 @@ export interface FunctionDefinition {
 
 export interface ParameterSchema {
   name?: string;
-  type: 'number' | 'boolean' | 'array';
+  type: 'number' | 'boolean' | 'string' | 'array';
   items?: {
-    type: 'number' | 'boolean';
+    type: 'number' | 'boolean' | 'string';
   };
   required?: boolean;
 }

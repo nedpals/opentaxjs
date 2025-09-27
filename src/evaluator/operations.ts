@@ -34,6 +34,14 @@ function resolveValue(
       constants: context.constants,
       calculated: context.calculated,
     });
+
+    if (typeof result === 'string') {
+      throw new Error(
+        `String values are not allowed in operations: '${result}'`
+      );
+    }
+
+    return result;
   } catch (error) {
     if (error instanceof ExpressionEvaluationError) {
       throw new Error(error.message);

@@ -31,13 +31,18 @@ export interface BooleanLiteral {
   value: boolean;
 }
 
+export interface StringLiteral {
+  type: 'string_literal';
+  value: string;
+}
+
 // Union type for variables
 export type VariableExpression =
   | InputVariableExpression
   | ConstantVariableExpression
   | CalculatedVariableExpression;
 
-export type LiteralExpression = NumberLiteral | BooleanLiteral;
+export type LiteralExpression = NumberLiteral | BooleanLiteral | StringLiteral;
 
 export type ParsedExpression =
   | VariableExpression
@@ -331,10 +336,15 @@ export class ExpressionParser {
     };
   }
 
-  private parseLiteral(): NumberLiteral | BooleanLiteral {
+  private parseLiteral(): NumberLiteral | BooleanLiteral | StringLiteral {
     this.skipWhitespace();
 
     const remaining = this.expression.slice(this.position);
+
+    // Check for string literals (single-quoted strings)
+    if (remaining.startsWith("'")) {
+      return this.parseStringLiteral();
+    }
 
     if (ExpressionParser.NUMBER_REGEX.test(remaining)) {
       const value = parseFloat(remaining);
@@ -355,14 +365,80 @@ export class ExpressionParser {
     }
 
     throw new ExpressionParseError(
-      `Invalid literal value '${remaining}'. Expected a number or boolean (true/false)`,
+      `Invalid literal value '${remaining}'. Expected a number, boolean (true/false), or single-quoted string`,
       this.expression,
       this.position
     );
   }
 
-  private parseParameterLiteral(): NumberLiteral | BooleanLiteral {
+  private parseStringLiteral(): StringLiteral {
+    this.expectChar("'");
+
+    let value = '';
+    while (this.position < this.expression.length && this.peek() !== "'") {
+      const char = this.peek();
+      if (char === '\\') {
+        // Handle escape sequences
+        this.advance();
+        if (this.position >= this.expression.length) {
+          throw new ExpressionParseError(
+            'Unterminated string literal: missing closing quote',
+            this.expression,
+            this.position
+          );
+        }
+        const escaped = this.peek();
+        switch (escaped) {
+          case "'":
+            value += "'";
+            break;
+          case '\\':
+            value += '\\';
+            break;
+          case 'n':
+            value += '\n';
+            break;
+          case 't':
+            value += '\t';
+            break;
+          case 'r':
+            value += '\r';
+            break;
+          default:
+            value += escaped;
+        }
+        this.advance();
+      } else {
+        value += char;
+        this.advance();
+      }
+    }
+
+    if (this.position >= this.expression.length) {
+      throw new ExpressionParseError(
+        'Unterminated string literal: missing closing quote',
+        this.expression,
+        this.position
+      );
+    }
+
+    this.expectChar("'");
+    return {
+      type: 'string_literal',
+      value,
+    };
+  }
+
+  private parseParameterLiteral():
+    | NumberLiteral
+    | BooleanLiteral
+    | StringLiteral {
     this.skipWhitespace();
+
+    // Check for string literals first
+    if (this.peek() === "'") {
+      return this.parseStringLiteral();
+    }
 
     let end = this.position;
     while (end < this.expression.length) {
@@ -393,7 +469,7 @@ export class ExpressionParser {
     }
 
     throw new ExpressionParseError(
-      `Invalid literal value '${literalText}'. Expected a number or boolean (true/false)`,
+      `Invalid literal value '${literalText}'. Expected a number, boolean (true/false), or single-quoted string`,
       this.expression,
       this.position
     );

@@ -6,6 +6,7 @@ import type {
   InputVariableExpression,
   NumberLiteral,
   ParsedExpression,
+  StringLiteral,
 } from './parser';
 import { ExpressionParser } from './parser';
 import { type FunctionDefinition, SymbolRegistry } from '@/symbol';
@@ -54,7 +55,7 @@ export class ExpressionEvaluator {
   evaluate(
     expression: string | ParsedExpression,
     context: VariableContext = { inputs: {}, constants: {}, calculated: {} }
-  ): number | boolean {
+  ): number | boolean | string {
     try {
       // Parse the expression if it's a string
       const parsedExpression =
@@ -140,13 +141,16 @@ export class ExpressionEvaluator {
   private evaluateExpression(
     expression: ParsedExpression,
     context: VariableContext
-  ): number | boolean {
+  ): number | boolean | string {
     switch (expression.type) {
       case 'number_literal':
         return this.evaluateNumberLiteral(expression);
 
       case 'boolean_literal':
         return this.evaluateBooleanLiteral(expression);
+
+      case 'string_literal':
+        return this.evaluateStringLiteral(expression);
 
       case 'input_variable':
         return this.evaluateInputVariable(expression, context);
@@ -176,6 +180,10 @@ export class ExpressionEvaluator {
   }
 
   private evaluateBooleanLiteral(expression: BooleanLiteral): boolean {
+    return expression.value;
+  }
+
+  private evaluateStringLiteral(expression: StringLiteral): string {
     return expression.value;
   }
 
@@ -253,7 +261,7 @@ export class ExpressionEvaluator {
   private evaluateCall(
     expression: CallExpression,
     context: VariableContext
-  ): number | boolean {
+  ): number | boolean | string {
     const { name, parameters } = expression;
 
     // Validate symbol usage - must be used as function
@@ -267,7 +275,7 @@ export class ExpressionEvaluator {
       );
     }
 
-    const evaluatedParams: (number | boolean)[] = [];
+    const evaluatedParams: (number | boolean | string)[] = [];
     for (const param of parameters) {
       try {
         evaluatedParams.push(this.evaluateExpression(param, context));
@@ -302,7 +310,7 @@ export class ExpressionEvaluator {
     const result = func.callback(...(evaluatedParams as unknown[]));
     if (typeof result !== 'number' && typeof result !== 'boolean') {
       throw new ExpressionEvaluationError(
-        `Function '${name}' must return a number or boolean, got ${typeof result}`,
+        `Function '${name}' must return a number, boolean, or string, got ${typeof result}`,
         expression,
         context
       );
@@ -314,7 +322,7 @@ export class ExpressionEvaluator {
   private validateFunctionParameters(
     funcName: string,
     func: FunctionDefinition,
-    params: (number | boolean)[],
+    params: (number | boolean | string)[],
     expression: CallExpression,
     context: VariableContext
   ): void {
@@ -339,7 +347,12 @@ export class ExpressionEvaluator {
         const param = params[i];
         const actualType = typeof param;
         if (actualType !== expectedType) {
-          const article = expectedType === 'number' ? 'a ' : '';
+          const article =
+            expectedType === 'number'
+              ? 'a '
+              : expectedType === 'string'
+                ? 'a '
+                : '';
           throw new ExpressionEvaluationError(
             `Function '${name}' parameter ${i + 1} must be ${article}${expectedType}, got ${actualType}`,
             expression,
@@ -373,7 +386,12 @@ export class ExpressionEvaluator {
         const actualType = typeof param;
 
         if (actualType !== paramSchema.type) {
-          const article = paramSchema.type === 'number' ? 'a ' : '';
+          const article =
+            paramSchema.type === 'number'
+              ? 'a '
+              : paramSchema.type === 'string'
+                ? 'a '
+                : '';
           throw new ExpressionEvaluationError(
             `Function '${name}' parameter ${i + 1} must be ${article}${paramSchema.type}, got ${actualType}`,
             expression,

@@ -171,10 +171,18 @@ export class ConditionalEvaluator {
         calculated: context.calculated,
       };
 
-      return this.expressionEvaluator.evaluate(
+      const result = this.expressionEvaluator.evaluate(
         value as string,
         variableContext
       );
+
+      if (typeof result === 'string') {
+        throw new RuleEvaluationError(
+          `String values are not allowed in conditional expressions: '${result}'`
+        );
+      }
+
+      return result;
     } catch (error) {
       if (error instanceof ExpressionEvaluationError) {
         throw new RuleEvaluationError(error.message);
@@ -210,7 +218,15 @@ export class ConditionalEvaluator {
         calculated: context.calculated,
       };
 
-      return this.expressionEvaluator.evaluate(varName, variableContext);
+      const result = this.expressionEvaluator.evaluate(varName, variableContext);
+      
+      if (typeof result === 'string') {
+        throw new RuleEvaluationError(
+          `String values are not allowed in conditional expressions: '${result}'`
+        );
+      }
+      
+      return result;
     } catch (error) {
       if (error instanceof ExpressionEvaluationError) {
         // Provide a based on variable prefix
