@@ -15,7 +15,7 @@ export interface VariableContext {
   inputs: Record<string, number | boolean>;
   constants: Record<string, number | boolean>;
   calculated: Record<string, number | boolean>;
-  tables?: Record<string, any>;
+  tables?: Record<string, unknown>;
 }
 
 export interface ExpressionEvaluatorConfig {

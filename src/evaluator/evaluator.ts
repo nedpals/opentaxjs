@@ -90,7 +90,7 @@ export class RuleEvaluator {
     }
 
     // Create tables lookup
-    const tablesMap: Record<string, any> = {};
+    const tablesMap: Record<string, unknown> = {};
     for (const table of rule.tables) {
       tablesMap[table.name] = table;
     }

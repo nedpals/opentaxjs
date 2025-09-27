@@ -16,7 +16,7 @@ export interface BuiltinSymbols {
 }
 
 export interface FunctionContext {
-  tables?: Record<string, any>;
+  tables?: Record<string, unknown>;
 }
 
 export interface FunctionDefinition {

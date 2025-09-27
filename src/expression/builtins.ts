@@ -9,7 +9,7 @@ export const BUILTIN_FUNCTIONS: Record<string, FunctionDefinition> = {
     ],
     callback: (
       args: Record<string, unknown>,
-      context: FunctionContext
+      _context: FunctionContext
     ): unknown => {
       const { a, b } = args as { a: number; b: number };
       return Math.abs(a - b);
@@ -27,7 +27,7 @@ export const BUILTIN_FUNCTIONS: Record<string, FunctionDefinition> = {
     ],
     callback: (
       args: Record<string, unknown>,
-      context: FunctionContext
+      _context: FunctionContext
     ): unknown => {
       const numbers = args.numbers as number[];
       return numbers.reduce((acc: number, val) => acc + val, 0);
@@ -45,7 +45,7 @@ export const BUILTIN_FUNCTIONS: Record<string, FunctionDefinition> = {
     ],
     callback: (
       args: Record<string, unknown>,
-      context: FunctionContext
+      _context: FunctionContext
     ): unknown => {
       const numbers = args.numbers as number[];
       if (numbers.length === 0) return 0;
@@ -64,7 +64,7 @@ export const BUILTIN_FUNCTIONS: Record<string, FunctionDefinition> = {
     ],
     callback: (
       args: Record<string, unknown>,
-      context: FunctionContext
+      _context: FunctionContext
     ): unknown => {
       const numbers = args.numbers as number[];
       if (numbers.length === 0) return 0;
@@ -79,7 +79,7 @@ export const BUILTIN_FUNCTIONS: Record<string, FunctionDefinition> = {
     ],
     callback: (
       args: Record<string, unknown>,
-      context: FunctionContext
+      _context: FunctionContext
     ): unknown => {
       const { value, decimals = 0 } = args as {
         value: number;
