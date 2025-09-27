@@ -1,4 +1,9 @@
-import type { Rule, EvaluationContext, FilingFrequency } from '@/types';
+import type {
+  Rule,
+  EvaluationContext,
+  FilingFrequency,
+  Operation,
+} from '@/types';
 import { validateRule, RuleValidationError } from '@/validator';
 import { RuleEvaluator } from '@/evaluator';
 import { ConditionalEvaluator } from '@/evaluator/conditional';
@@ -18,11 +23,23 @@ export interface TaxLiability {
   target_filing_date: Date;
 }
 
+// TODO: add breakdown of calculation steps
+export interface ExecutionStep {
+  step: string;
+  operation?: Operation;
+  result?: string | number | boolean;
+}
+
 export interface CalculationResult {
+  liability: number;
   liabilities: TaxLiability[];
-  variables: Record<string, number | boolean>;
-  context: EvaluationContext;
-  period: PeriodInfo;
+  calculated: Record<string, number | boolean>;
+  inputs: Record<string, number | boolean>;
+  period?: PeriodInfo;
+  debug?: {
+    context: EvaluationContext;
+    executionTrace?: ExecutionStep[];
+  };
 }
 
 export interface OpenTaxConfig {
@@ -115,10 +132,14 @@ export default function opentax(config: OpenTaxConfig): OpenTaxInstance {
       const liabilities = generateFilingSchedules(rule, context, periodInfo);
 
       return {
+        liability: (context.calculated.liability as number) || 0,
         liabilities,
-        variables: { ...context.inputs, ...context.calculated },
-        context,
+        calculated: context.calculated,
+        inputs: context.inputs,
         period: periodInfo,
+        debug: {
+          context,
+        },
       };
     },
   };

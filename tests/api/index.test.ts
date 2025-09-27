@@ -136,33 +136,30 @@ describe('opentax API', () => {
       const result = instance.calculate({ gross_income: 500000 });
 
       expect(result).toBeDefined();
-      console.log('Debug - Result variables:', result.variables);
-      console.log('Debug - Context calculated:', result.context.calculated);
+      console.log('Debug - Result calculated:', result.calculated);
+      console.log('Debug - Result inputs:', result.inputs);
 
-      // Update expectations to match actual behavior - looks like lookup table logic might need adjustment
-      expect(result.variables.taxable_income).toBe(250000);
-      expect(result.variables.gross_income).toBe(500000);
-      // TODO: Fix lookup table calculation - currently returns 0 instead of expected 62500
-      // expect(result.variables.liability).toBe(62500); // (500000 - 250000) * 0.25
+      expect(result.calculated.taxable_income).toBe(250000);
+      expect(result.inputs.gross_income).toBe(500000);
+      expect(result.liability).toBe(62500); // (500000 - 250000) * 0.25
     });
 
     it('should return full evaluation context', () => {
       const result = instance.calculate({ gross_income: 500000 });
 
-      expect(result.context).toBeDefined();
-      expect(result.context.inputs.gross_income).toBe(500000);
-      // TODO: Fix lookup table calculation
-      // expect(result.context.calculated.liability).toBe(62500);
-      expect(result.context.constants.tax_rate).toBe(0.25);
-      expect(result.context.constants.exemption_threshold).toBe(250000);
+      expect(result.debug?.context).toBeDefined();
+      expect(result.inputs.gross_income).toBe(500000);
+      expect(result.calculated.liability).toBe(62500);
+      expect(result.debug!.context.constants.tax_rate).toBe(0.25);
+      expect(result.debug!.context.constants.exemption_threshold).toBe(250000);
     });
 
     it('should return period information', () => {
       const result = instance.calculate({ gross_income: 500000 });
 
       expect(result.period).toBeDefined();
-      expect(result.period.affected_quarters).toEqual([1, 2, 3, 4]);
-      expect(result.period.is_full_year).toBe(true);
+      expect(result.period!.affected_quarters).toEqual([1, 2, 3, 4]);
+      expect(result.period!.is_full_year).toBe(true);
     });
 
     it('should generate filing schedules for full year', () => {
@@ -194,8 +191,8 @@ describe('opentax API', () => {
         { start_date: '2024-07-01', end_date: '2024-12-31' }
       );
 
-      expect(result.period.affected_quarters).toEqual([3, 4]);
-      expect(result.period.is_full_year).toBe(false);
+      expect(result.period!.affected_quarters).toEqual([3, 4]);
+      expect(result.period!.is_full_year).toBe(false);
 
       // Should only have quarterly liabilities for Q3 and Q4
       const quarterlyLiabilities = result.liabilities.filter(l => l.type === 'quarterly');
@@ -206,8 +203,8 @@ describe('opentax API', () => {
     it('should handle zero income correctly', () => {
       const result = instance.calculate({ gross_income: 200000 });
 
-      expect(result.variables.taxable_income).toBe(0); // max(0, 200000 - 250000)
-      expect(result.variables.liability).toBe(0);
+      expect(result.calculated.taxable_income).toBe(0); // max(0, 200000 - 250000)
+      expect(result.liability).toBe(0);
 
       result.liabilities.forEach(liability => {
         expect(liability.amount).toBe(0);
@@ -218,8 +215,8 @@ describe('opentax API', () => {
       const inputs = { gross_income: 500000 };
       const result = instance.calculate(inputs);
 
-      expect(result.variables.gross_income).toBe(inputs.gross_income);
-      expect(result.context.inputs.gross_income).toBe(inputs.gross_income);
+      expect(result.inputs.gross_income).toBe(inputs.gross_income);
+      expect(result.debug!.context.inputs.gross_income).toBe(inputs.gross_income);
     });
   });
 
@@ -253,7 +250,7 @@ describe('opentax API', () => {
       const instance = opentax({ rule: ruleWithConditionalSchedule });
       const result = instance.calculate({ gross_income: 500000 });
 
-      expect(result.variables.liability).toBe(62500);
+      expect(result.liability).toBe(62500);
 
       const quarterlyLiabilities = result.liabilities.filter(l => l.type === 'quarterly');
       expect(quarterlyLiabilities).toHaveLength(4);
@@ -265,7 +262,7 @@ describe('opentax API', () => {
       const result = instance.calculate({ gross_income: 400000 }); // liability = 37500
 
       // TODO: Fix lookup table calculation
-      // expect(result.variables.liability).toBe(37500);
+      // expect(result.liability).toBe(37500);
 
       const quarterlyLiabilities = result.liabilities.filter(l => l.type === 'quarterly');
       expect(quarterlyLiabilities).toHaveLength(0); // Should be skipped
@@ -297,10 +294,10 @@ describe('opentax API', () => {
         { start_date: '2024-01-01', end_date: '2024-06-30' }
       );
 
-      expect(result.period.affected_quarters).toEqual([1, 2]);
-      expect(result.period.start_date.getFullYear()).toBe(2024);
-      expect(result.period.start_date.getMonth()).toBe(0); // January
-      expect(result.period.end_date.getMonth()).toBe(5); // June
+      expect(result.period!.affected_quarters).toEqual([1, 2]);
+      expect(result.period!.start_date.getFullYear()).toBe(2024);
+      expect(result.period!.start_date.getMonth()).toBe(0); // January
+      expect(result.period!.end_date.getMonth()).toBe(5); // June
     });
 
     it('should apply proration factors to quarterly amounts', () => {
