@@ -280,6 +280,58 @@ function validateConditionalCase(
     });
   }
 
+  if (caseItem.effects) {
+    if (!Array.isArray(caseItem.effects)) {
+      issues.push({
+        severity: 'error',
+        message: 'Effects must be an array',
+        path: `${basePath}/effects`,
+      });
+    } else {
+      caseItem.effects.forEach((effect, effectIndex) => {
+        const effectPath = `${basePath}/effects/${effectIndex}`;
+
+        if (typeof effect.type !== 'string') {
+          issues.push({
+            severity: 'error',
+            message: 'Effect must have a type',
+            path: `${effectPath}/type`,
+          });
+        }
+
+        if (typeof effect.target !== 'string' || effect.target.trim() === '') {
+          issues.push({
+            severity: 'error',
+            message: 'Effect must have a non-empty target',
+            path: `${effectPath}/target`,
+          });
+        }
+
+        if (
+          effect.description !== undefined &&
+          typeof effect.description !== 'string'
+        ) {
+          issues.push({
+            severity: 'error',
+            message: 'Effect description must be a string',
+            path: `${effectPath}/description`,
+          });
+        }
+
+        if (
+          effect.reference !== undefined &&
+          typeof effect.reference !== 'string'
+        ) {
+          issues.push({
+            severity: 'error',
+            message: 'Effect reference must be a string',
+            path: `${effectPath}/reference`,
+          });
+        }
+      });
+    }
+  }
+
   return issues;
 }
 

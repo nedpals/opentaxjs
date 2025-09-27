@@ -33,12 +33,19 @@ export const COMPARISON_OPERATORS = [
 
 export const LOGICAL_OPERATORS = ['and', 'or', 'not'] as const;
 export const VALID_FREQUENCIES = ['quarterly', 'monthly', 'annually'] as const;
+export const EFFECT_TYPES = [
+  'replaces',
+  'excludes',
+  'requires',
+  'affects',
+] as const;
 
 export type TaxpayerType = (typeof VALID_TAXPAYER_TYPES)[number];
 export type OperationType = (typeof VALID_OPERATION_TYPES)[number];
 export type ComparisonOperatorType = (typeof COMPARISON_OPERATORS)[number];
 export type LogicalOperatorType = (typeof LOGICAL_OPERATORS)[number];
 export type FilingFrequency = (typeof VALID_FREQUENCIES)[number];
+export type EffectType = (typeof EFFECT_TYPES)[number];
 
 export interface VariableDeclaration {
   type: 'number' | 'boolean' | 'string';
@@ -80,6 +87,15 @@ export interface ValidationRule {
   when: Condition;
   error: string;
 }
+
+export interface Effect {
+  type: EffectType;
+  target: string;
+  jurisdiction?: string;
+  description?: string;
+  reference?: string;
+  conditions?: Condition;
+  duration?: string;
 }
 
 export interface BaseOperation {
