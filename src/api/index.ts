@@ -49,6 +49,7 @@ export interface OpenTaxConfig {
 }
 
 export interface OpenTaxInstance {
+  rule: Rule;
   calculate(
     inputs: VariableMap,
     options?: PeriodCalculationOptions
@@ -124,6 +125,7 @@ export default function opentax(config: OpenTaxConfig): OpenTaxInstance {
   const evaluate = (inputs: VariableMap) => evaluator.evaluate(rule, inputs);
 
   return {
+    rule,
     calculate(
       inputs: VariableMap,
       options?: PeriodCalculationOptions
