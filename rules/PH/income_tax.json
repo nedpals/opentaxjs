@@ -74,7 +74,6 @@
     "gross_compensation_income": {
       "type": "number",
       "description": "Total annual salary, wages, and other compensation income.",
-      "default": 0,
       "when": {
         "or": [
           {
@@ -131,7 +130,6 @@
     "gross_business_receipts": {
       "type": "number",
       "description": "Total gross sales or receipts from business or profession.",
-      "default": 0,
       "when": {
         "or": [
           {
@@ -205,7 +203,6 @@
     "itemized_deductions": {
       "type": "number",
       "description": "Total substantiated ordinary and necessary business expenses.",
-      "default": 0,
       "when": {
         "and": [
           {
