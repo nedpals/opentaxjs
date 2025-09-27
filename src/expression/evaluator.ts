@@ -36,7 +36,7 @@ export interface SymbolInfo {
     | 'input_variable'
     | 'constant_variable'
     | 'calculated_variable';
-  source: 'builtin' | 'predefined' | 'context';
+  source: 'builtin' | 'context';
   valueType?: 'number' | 'boolean' | 'unknown';
 }
 
@@ -56,8 +56,36 @@ export class ExpressionEvaluationError extends Error {
   }
 }
 
-class SymbolRegistry {
+export interface BuiltinSymbols {
+  functions?: Record<string, FunctionDefinition>;
+  constants?: Record<string, number | boolean>;
+  variables?: Record<string, number | boolean>;
+}
+
+export class SymbolRegistry {
   private symbols: Map<string, SymbolInfo> = new Map();
+
+  constructor(builtins?: BuiltinSymbols) {
+    if (builtins?.functions) {
+      for (const name of Object.keys(builtins.functions)) {
+        this.addSymbol(name, 'function', 'builtin');
+      }
+    }
+
+    if (builtins?.constants) {
+      for (const [name, value] of Object.entries(builtins.constants)) {
+        const valueType = typeof value as 'number' | 'boolean';
+        this.addSymbol(name, 'constant_variable', 'builtin', valueType);
+      }
+    }
+
+    if (builtins?.variables) {
+      for (const [name, value] of Object.entries(builtins.variables)) {
+        const valueType = typeof value as 'number' | 'boolean';
+        this.addSymbol(name, 'calculated_variable', 'builtin', valueType);
+      }
+    }
+  }
 
   addSymbol(
     name: string,
@@ -66,7 +94,7 @@ class SymbolRegistry {
       | 'input_variable'
       | 'constant_variable'
       | 'calculated_variable',
-    source: 'builtin' | 'predefined' | 'context',
+    source: 'builtin' | 'context',
     valueType?: 'number' | 'boolean'
   ): void {
     // Check for conflicts
@@ -81,12 +109,12 @@ class SymbolRegistry {
         );
       }
 
-      // Allow redefinition of same type (context overrides predefined, but not built-ins)
-      if (existing.source === 'builtin') {
-        throw new Error(
-          `Cannot redefine built-in ${existing.symbolType} '${name}'`
-        );
+      // Functions cannot be redefined, but variables can be overridden by context
+      if (existing.source === 'builtin' && existing.symbolType === 'function') {
+        throw new Error(`Cannot redefine built-in function '${name}'`);
       }
+
+      // Built-in variables and constants can be overridden by context values
     }
 
     this.symbols.set(name, {
@@ -110,7 +138,7 @@ class SymbolRegistry {
   }
 
   clearDynamicSymbols(): void {
-    // Remove all symbols from context, keep builtin and predefined
+    // Remove all symbols from context, keep builtin
     for (const [name, symbol] of this.symbols.entries()) {
       if (symbol.source === 'context') {
         this.symbols.delete(name);
@@ -130,38 +158,11 @@ export class ExpressionEvaluator {
       builtinVariables: config.builtinVariables || {},
     };
 
-    this.symbolRegistry = new SymbolRegistry();
-    this.buildStaticSymbolRegistry();
-  }
-
-  private buildStaticSymbolRegistry(): void {
-    for (const functionName of Object.keys(this.config.builtinFunctions)) {
-      this.symbolRegistry.addSymbol(functionName, 'function', 'builtin');
-    }
-
-    for (const [constantName, value] of Object.entries(
-      this.config.builtinConstants
-    )) {
-      const valueType = typeof value as 'number' | 'boolean';
-      this.symbolRegistry.addSymbol(
-        constantName,
-        'constant_variable',
-        'predefined',
-        valueType
-      );
-    }
-
-    for (const [variableName, value] of Object.entries(
-      this.config.builtinVariables
-    )) {
-      const valueType = typeof value as 'number' | 'boolean';
-      this.symbolRegistry.addSymbol(
-        variableName,
-        'calculated_variable',
-        'predefined',
-        valueType
-      );
-    }
+    this.symbolRegistry = new SymbolRegistry({
+      functions: this.config.builtinFunctions,
+      constants: this.config.builtinConstants,
+      variables: this.config.builtinVariables,
+    });
   }
 
   evaluate(
@@ -315,18 +316,18 @@ export class ExpressionEvaluator {
     // Validate symbol usage
     this.validateIdentifierUsage(name, 'variable', expression, context);
 
-    // Check user-provided constants first
+    // Check user-provided constants first (context overrides built-in)
     if (name in context.constants) {
       return context.constants[name];
     }
 
-    // Check predefined constants
+    // Check built-in constants
     if (name in this.config.builtinConstants) {
       return this.config.builtinConstants[name];
     }
 
     throw new ExpressionEvaluationError(
-      `Constant '${name}' not found in context or predefined constants`,
+      `Constant '${name}' not found in context or built-in constants`,
       expression,
       context
     );
@@ -341,6 +342,7 @@ export class ExpressionEvaluator {
     // Validate symbol usage
     this.validateIdentifierUsage(name, 'variable', expression, context);
 
+    // Check context first (context overrides built-in)
     if (name in context.calculated) {
       return context.calculated[name];
     }
@@ -350,7 +352,7 @@ export class ExpressionEvaluator {
     }
 
     throw new ExpressionEvaluationError(
-      `Calculated variable '${name}' not found in context or predefined variables`,
+      `Calculated variable '${name}' not found in context or built-in variables`,
       expression,
       context
     );
