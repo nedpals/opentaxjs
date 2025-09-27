@@ -1,6 +1,6 @@
 {
   "name": "opentaxjs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "An open-source, rules-based engine for accurate and consistent Philippine tax calculations.",
   "main": "./dist/index.js",
   "module": "./dist/index.esm.js",
