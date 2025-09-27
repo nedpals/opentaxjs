@@ -7,6 +7,7 @@ import type {
   NumberLiteral,
   ParsedExpression,
 } from './parser';
+import { ExpressionParser } from './parser';
 import { type FunctionDefinition, SymbolRegistry } from '@/symbol';
 
 export interface VariableContext {
@@ -51,21 +52,27 @@ export class ExpressionEvaluator {
   }
 
   evaluate(
-    expression: ParsedExpression,
+    expression: string | ParsedExpression,
     context: VariableContext = { inputs: {}, constants: {}, calculated: {} }
   ): number | boolean {
     try {
+      // Parse the expression if it's a string
+      const parsedExpression =
+        typeof expression === 'string'
+          ? ExpressionParser.parse(expression)
+          : expression;
+
       // Clear any previous context symbols and build new ones
       this.symbolRegistry.clearDynamicSymbols();
       this.buildDynamicSymbolRegistry(context);
-      return this.evaluateExpression(expression, context);
+      return this.evaluateExpression(parsedExpression, context);
     } catch (error) {
       if (error instanceof ExpressionEvaluationError) {
         throw error;
       }
       throw new ExpressionEvaluationError(
         `Evaluation failed: ${error instanceof Error ? error.message : String(error)}`,
-        expression,
+        typeof expression === 'string' ? undefined : expression,
         context
       );
     }
@@ -377,7 +384,7 @@ export class ExpressionEvaluator {
     }
   }
 
-  createContext(
+  private createContext(
     inputs: Record<string, number | boolean> = {},
     constants: Record<string, number | boolean> = {},
     calculated: Record<string, number | boolean> = {}
