@@ -21,7 +21,7 @@ This project **DOES NOT** aim to:
 ## Current Status
 The project has made significant progress beyond the initial specification phase. Currently:
 - The [rules specification](RULES_SPEC.md) is complete and comprehensive.
-- An accompanying JSON schema ([draft-01.json](draft-01.json)) has been created to validate the rules format.
+- An accompanying JSON schema ([0.1.0.json](schema/0.1.0.json)) has been created to validate the rules format.
 - Infrastructure for the development of the library is complete.
 - The expression parser and evaluator have been implemented.
 - The core rule evaluation engine is complete and supports all specification features.

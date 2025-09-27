@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/nedpals/opentaxjs/raw/refs/heads/master/draft-01.json",
+  "$id": "https://github.com/nedpals/opentaxjs/raw/refs/heads/master/schema/0.1.0.json",
   "title": "OpenTaxJS Rules Format",
   "description": "JSON Schema for opentaxjs tax calculation rules format",
   "type": "object",
