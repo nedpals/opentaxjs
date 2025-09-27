@@ -1,11 +1,11 @@
-import type { Rule, TableBracket } from '../types';
+import type { RawRule, RawTableBracket } from '../types';
 import type { ValidationIssue } from '../errors';
-import { isRuleOnlyIdentifier } from '../../expression';
+import { isRuleOnlyIdentifier } from '@/expression';
 
 const MAX_TAXABLE_INCOME_REFERENCE = '$$MAX_TAXABLE_INCOME';
 
 function validateTableBracket(
-  bracket: TableBracket,
+  bracket: RawTableBracket,
   index: number,
   tableName: string
 ): ValidationIssue[] {
@@ -110,7 +110,7 @@ function validateTableBracket(
   return issues;
 }
 
-export function validateTables(rule: Rule): ValidationIssue[] {
+export function validateTables(rule: RawRule): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
   if (!rule.tables || rule.tables.length === 0) {

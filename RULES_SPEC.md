@@ -1068,9 +1068,10 @@ Function calls are used in expressions and conditional rules:
 ```
 function_call = function_name "(" [parameter_list] ")"
 parameter_list = parameter ("," parameter)*
-parameter = variable_reference | function_call | number | boolean
+parameter = variable_reference | function_call | number | boolean | string_literal
 number = [0-9]+ ("." [0-9]+)?
 boolean = "true" | "false"
+string_literal = "'" string_content "'"
 ```
 
 **Examples:**
@@ -1080,17 +1081,64 @@ sum($income1, $income2, $income3)
 max(taxable_income, 0)
 round(liability, 2)
 min(tax_rate, 0.25)
+lookup('income_tax_brackets', taxable_income)
+lookup('tax_table_2024', $gross_income)
 ```
 
 **Rules:**
 - Function names must conform to the `identifier` syntax defined in section 12.1.1
-- Parameters can be variable references, nested function calls, numbers, or booleans
+- Parameters can be variable references, nested function calls, numbers, booleans, or string literals
 - Numbers can be integers or decimals
 - Booleans are the literals `true` or `false`
+- String literals must be enclosed in single quotes (see section 12.1.4 for details)
 - Nested function calls are allowed
 - Whitespace around commas and parentheses is optional
 
-#### 12.1.4. Validation Rules
+#### 12.1.4. String Literals
+
+String literals are used in function parameters where string values are required (e.g., table names in lookup functions):
+
+**Syntax Pattern:**
+```
+string_literal = "'" string_content "'"
+string_content = (escaped_char | [^'\\])*
+escaped_char = "\\" ("'" | "\\" | "n" | "t" | "r" | any_char)
+```
+
+**Rules:**
+- Must be enclosed in single quotes (`'...'`)
+- Single quotes are used instead of double quotes to avoid conflicts within JSON strings
+- Escape sequences are supported:
+  - `\'` for literal single quote
+  - `\\` for literal backslash
+  - `\n` for newline
+  - `\t` for tab
+  - `\r` for carriage return
+  - Any other character following `\` is treated literally
+
+**Valid Examples:**
+```
+'income_tax_brackets'
+'tax_table_2024'
+'don\'t include this'
+'file\\path\\name'
+'line1\nline2'
+```
+
+**Invalid Examples:**
+- `"double_quotes"` (double quotes not allowed)
+- `'unterminated` (missing closing quote)
+- `missing_quotes` (unquoted strings not allowed)
+
+**Usage Context:**
+- String literals are primarily used as parameters to functions that require string arguments
+- They cannot be used in mathematical operations or conditional expressions
+- Most commonly used with the `lookup(table_name, value)` function
+
+**Implementation Note:**
+String literals should only be accepted where explicitly required by function signatures. They are not valid in mathematical operations, variable assignments, or conditional logic to maintain type safety.
+
+#### 12.1.5. Validation Rules
 
 Implementations must validate:
 

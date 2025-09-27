@@ -1,42 +1,6 @@
-export const VALID_TAXPAYER_TYPES = [
-  'INDIVIDUAL',
-  'CORPORATION',
-  'PARTNERSHIP',
-  'SOLE_PROPRIETORSHIP',
-] as const;
+import type { TaxpayerType, OperationType, FilingFrequency } from '@/types';
 
-// TODO: should be removed later when
-// operation evaluation is implemented.
-export const VALID_OPERATION_TYPES = [
-  'set',
-  'add',
-  'subtract',
-  'deduct',
-  'multiply',
-  'divide',
-  'min',
-  'max',
-  'lookup',
-] as const;
-
-export const COMPARISON_OPERATORS = [
-  'eq',
-  'ne',
-  'gt',
-  'lt',
-  'gte',
-  'lte',
-] as const;
-export const LOGICAL_OPERATORS = ['and', 'or', 'not'] as const;
-export const VALID_FREQUENCIES = ['quarterly', 'annual'] as const;
-
-export type TaxpayerType = (typeof VALID_TAXPAYER_TYPES)[number];
-export type OperationType = (typeof VALID_OPERATION_TYPES)[number];
-export type ComparisonOperatorType = (typeof COMPARISON_OPERATORS)[number];
-export type LogicalOperatorType = (typeof LOGICAL_OPERATORS)[number];
-export type FilingFrequency = (typeof VALID_FREQUENCIES)[number];
-
-export interface Rule {
+export interface RawRule {
   $version: string;
   name: string;
   references?: string[];
@@ -47,14 +11,14 @@ export interface Rule {
   category?: string;
   author?: string;
   constants?: Record<string, number | boolean>;
-  tables?: Table[];
-  inputs?: Record<string, VariableSchema>;
-  outputs?: Record<string, VariableSchema>;
-  filing_schedules?: FilingSchedule[];
-  flow: FlowStep[];
+  tables?: RawTable[];
+  inputs?: Record<string, RawVariableSchema>;
+  outputs?: Record<string, RawVariableSchema>;
+  filing_schedules?: RawFilingSchedule[];
+  flow: RawFlowStep[];
 }
 
-export interface VariableSchema {
+export interface RawVariableSchema {
   type: 'number' | 'string' | 'boolean' | 'array' | 'object';
   description?: string;
   minimum?: number;
@@ -66,19 +30,19 @@ export interface VariableSchema {
   };
 }
 
-export interface Table {
+export interface RawTable {
   name: string;
-  brackets: TableBracket[];
+  brackets: RawTableBracket[];
 }
 
-export interface TableBracket {
+export interface RawTableBracket {
   min: number | string;
   max: number | string;
   rate: number;
   base_tax: number;
 }
 
-export interface FilingSchedule {
+export interface RawFilingSchedule {
   name: string;
   frequency: FilingFrequency;
   filing_day: number | string;
@@ -89,22 +53,22 @@ export interface FilingSchedule {
   };
 }
 
-export interface FlowStep {
+export interface RawFlowStep {
   name: string;
-  operations?: Operation[];
-  cases?: ConditionalCase[];
+  operations?: RawOperation[];
+  cases?: RawConditionalCase[];
 }
 
-export interface Operation {
+export interface RawOperation {
   type: OperationType;
   target: string;
   value?: string | number | boolean;
   table?: string;
 }
 
-export interface ConditionalCase {
+export interface RawConditionalCase {
   when?: ConditionalExpression;
-  operations: Operation[];
+  operations: RawOperation[];
 }
 
 export type ConditionalExpression =

@@ -1,11 +1,11 @@
-import type { Rule, VariableSchema } from '../types';
+import type { RawRule, RawVariableSchema } from '../types';
 import type { ValidationIssue } from '../errors';
-import { isRuleOnlyIdentifier } from '../../expression/identifiers';
+import { isRuleOnlyIdentifier } from '@/expression/identifiers';
 
 const VALID_SCHEMA_TYPES = ['number', 'string', 'boolean', 'array', 'object'];
 
 function validateVariableSchema(
-  schema: VariableSchema,
+  schema: RawVariableSchema,
   path: string
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
@@ -81,7 +81,7 @@ function validateVariableSchema(
   return issues;
 }
 
-export function validateVariables(rule: Rule): ValidationIssue[] {
+export function validateVariables(rule: RawRule): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const allNames = new Set<string>();
 
@@ -164,7 +164,7 @@ function validateConstant(
 
 function validateInput(
   name: string,
-  schema: VariableSchema,
+  schema: RawVariableSchema,
   existingNames: Set<string>
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
@@ -199,7 +199,7 @@ function validateInput(
 
 function validateOutput(
   name: string,
-  schema: VariableSchema,
+  schema: RawVariableSchema,
   existingNames: Set<string>
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];

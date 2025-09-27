@@ -1,13 +1,18 @@
-import type { FunctionDefinition } from '@/symbol';
+import type { FunctionDefinition, FunctionContext } from '@/symbol';
+import type { Table } from '@/types';
 
 export const BUILTIN_FUNCTIONS: Record<string, FunctionDefinition> = {
   diff: {
     parameters: [
-      { type: 'number', required: true },
-      { type: 'number', required: true },
+      { name: 'a', type: 'number', required: true },
+      { name: 'b', type: 'number', required: true },
     ],
-    callback: (a: unknown, b: unknown): unknown => {
-      return Math.abs((a as number) - (b as number));
+    callback: (
+      args: Record<string, unknown>,
+      _context: FunctionContext
+    ): unknown => {
+      const { a, b } = args as { a: number; b: number };
+      return Math.abs(a - b);
     },
   },
 
@@ -20,8 +25,12 @@ export const BUILTIN_FUNCTIONS: Record<string, FunctionDefinition> = {
         required: false,
       },
     ],
-    callback: (...args: unknown[]): unknown => {
-      return (args as number[]).reduce((acc: number, val) => acc + val, 0);
+    callback: (
+      args: Record<string, unknown>,
+      _context: FunctionContext
+    ): unknown => {
+      const numbers = args.numbers as number[];
+      return numbers.reduce((acc: number, val) => acc + val, 0);
     },
   },
 
@@ -34,9 +43,13 @@ export const BUILTIN_FUNCTIONS: Record<string, FunctionDefinition> = {
         required: false,
       },
     ],
-    callback: (...args: unknown[]): unknown => {
-      if (args.length === 0) return 0;
-      return Math.max(...(args as number[]));
+    callback: (
+      args: Record<string, unknown>,
+      _context: FunctionContext
+    ): unknown => {
+      const numbers = args.numbers as number[];
+      if (numbers.length === 0) return 0;
+      return Math.max(...numbers);
     },
   },
 
@@ -49,22 +62,70 @@ export const BUILTIN_FUNCTIONS: Record<string, FunctionDefinition> = {
         required: false,
       },
     ],
-    callback: (...args: unknown[]): unknown => {
-      if (args.length === 0) return 0;
-      return Math.min(...(args as number[]));
+    callback: (
+      args: Record<string, unknown>,
+      _context: FunctionContext
+    ): unknown => {
+      const numbers = args.numbers as number[];
+      if (numbers.length === 0) return 0;
+      return Math.min(...numbers);
     },
   },
 
   round: {
     parameters: [
-      { type: 'number', required: true },
-      { type: 'number', required: false }, // decimals parameter is optional
+      { name: 'value', type: 'number', required: true },
+      { name: 'decimals', type: 'number', required: false }, // decimals parameter is optional
     ],
-    callback: (value: unknown, decimals: unknown = 0): unknown => {
-      const numValue = value as number;
-      const numDecimals = decimals as number;
-      const factor = 10 ** numDecimals;
-      return Math.round(numValue * factor) / factor;
+    callback: (
+      args: Record<string, unknown>,
+      _context: FunctionContext
+    ): unknown => {
+      const { value, decimals = 0 } = args as {
+        value: number;
+        decimals?: number;
+      };
+      const factor = 10 ** decimals;
+      return Math.round(value * factor) / factor;
+    },
+  },
+
+  lookup: {
+    parameters: [
+      { name: 'tableName', type: 'string', required: true }, // table name
+      { name: 'value', type: 'number', required: true }, // value to lookup
+    ],
+    callback: (
+      args: Record<string, unknown>,
+      context: FunctionContext
+    ): unknown => {
+      const { tableName, value } = args as { tableName: string; value: number };
+
+      if (!context.tables) {
+        throw new Error('Tables context not available for lookup function');
+      }
+
+      const table = context.tables[tableName] as Table;
+      if (!table) {
+        throw new Error(`Table '${tableName}' not found`);
+      }
+
+      // Find the bracket where value falls between min and max
+      for (const bracket of table.brackets) {
+        const min = bracket.min;
+        const max =
+          bracket.max === null ? Number.MAX_SAFE_INTEGER : bracket.max;
+
+        if (value >= min && value <= max) {
+          // Calculate tax for the amount within this bracket
+          const taxableInBracket = value - min;
+          const taxInBracket = taxableInBracket * bracket.rate;
+          return bracket.base_tax + taxInBracket;
+        }
+      }
+
+      // If no bracket found, return 0
+      return 0;
     },
   },
 };

@@ -15,18 +15,41 @@ export interface BuiltinSymbols {
   variables?: Record<string, number | boolean>;
 }
 
+export interface FunctionContext {
+  tables?: Record<string, unknown>;
+}
+
 export interface FunctionDefinition {
   parameters: ParameterSchema[];
-  callback: (...args: unknown[]) => unknown;
+  callback: (
+    args: Record<string, unknown>,
+    context: FunctionContext
+  ) => unknown;
 }
 
 export interface ParameterSchema {
   name?: string;
-  type: 'number' | 'boolean' | 'array';
+  type: 'number' | 'boolean' | 'string' | 'array';
   items?: {
-    type: 'number' | 'boolean';
+    type: 'number' | 'boolean' | 'string';
   };
   required?: boolean;
+}
+
+export class VariableResolutionError extends Error {
+  constructor(
+    message: string,
+    public readonly variableName?: string
+  ) {
+    super(message);
+    this.name = 'VariableResolutionError';
+  }
+}
+
+export interface VariableContext {
+  inputs: Record<string, number | boolean>;
+  constants: Record<string, number | boolean>;
+  calculated: Record<string, number | boolean>;
 }
 
 export class SymbolRegistry {
@@ -110,6 +133,154 @@ export class SymbolRegistry {
       if (symbol.source === 'context') {
         this.symbols.delete(name);
       }
+    }
+  }
+
+  /**
+   * Resolves a variable reference to its actual value
+   * @param reference Variable reference (e.g., '$income', '$$tax_rate', 'taxable_income')
+   * @param context Variable context containing values
+   * @returns The resolved value
+   */
+  resolveValue(
+    reference: string | number | boolean,
+    context: VariableContext
+  ): number | boolean {
+    // Return primitives as-is
+    if (typeof reference === 'number' || typeof reference === 'boolean') {
+      return reference;
+    }
+
+    const varName = reference as string;
+    return this.resolveVariable(varName, context);
+  }
+
+  /**
+   * Resolves a variable by name with prefix handling and symbol validation
+   */
+  private resolveVariable(
+    varName: string,
+    context: VariableContext
+  ): number | boolean {
+    // Input variable ($prefix)
+    if (varName.startsWith('$') && !varName.startsWith('$$')) {
+      const inputName = varName.slice(1);
+      this.validateSymbolUsage(inputName, 'input_variable');
+      return this.getInputValue(inputName, context);
+    }
+
+    // Constant variable ($$prefix)
+    if (varName.startsWith('$$')) {
+      const constName = varName.slice(2);
+      this.validateSymbolUsage(constName, 'constant_variable');
+      return this.getConstantValue(constName, context);
+    }
+
+    // No prefix - try calculated, then inputs, then constants
+    return this.resolveUnprefixedVariable(varName, context);
+  }
+
+  /**
+   * Validates that a symbol is being used correctly (as function vs variable)
+   */
+  private validateSymbolUsage(
+    name: string,
+    expectedType:
+      | 'function'
+      | 'input_variable'
+      | 'constant_variable'
+      | 'calculated_variable'
+  ): void {
+    const symbol = this.getSymbol(name);
+    if (symbol && symbol.symbolType !== expectedType) {
+      const actualIsFunction = symbol.symbolType === 'function';
+      const expectedIsFunction = expectedType === 'function';
+
+      throw new VariableResolutionError(
+        `Incorrect usage: '${name}' is ${actualIsFunction ? 'a function' : 'a variable'} but used as ${expectedIsFunction ? 'a function' : 'a variable'}`,
+        name
+      );
+    }
+  }
+
+  /**
+   * Resolves variables without prefixes (calculated, inputs, constants in that priority)
+   */
+  private resolveUnprefixedVariable(
+    varName: string,
+    context: VariableContext
+  ): number | boolean {
+    // Priority: calculated > inputs > constants
+    if (varName in context.calculated) {
+      return context.calculated[varName];
+    }
+    if (varName in context.inputs) {
+      return context.inputs[varName];
+    }
+    if (varName in context.constants) {
+      return context.constants[varName];
+    }
+
+    throw new VariableResolutionError(
+      `Variable '${varName}' not found`,
+      varName
+    );
+  }
+
+  /**
+   * Gets input variable value with validation
+   */
+  private getInputValue(
+    inputName: string,
+    context: VariableContext
+  ): number | boolean {
+    if (inputName in context.inputs) {
+      return context.inputs[inputName];
+    }
+    throw new VariableResolutionError(
+      `Input variable '${inputName}' not found`,
+      inputName
+    );
+  }
+
+  /**
+   * Gets constant variable value with validation
+   */
+  private getConstantValue(
+    constName: string,
+    context: VariableContext
+  ): number | boolean {
+    if (constName in context.constants) {
+      return context.constants[constName];
+    }
+    throw new VariableResolutionError(
+      `Constant '${constName}' not found`,
+      constName
+    );
+  }
+
+  /**
+   * Batch resolves multiple values efficiently
+   */
+  resolveBatch(
+    references: (string | number | boolean)[],
+    context: VariableContext
+  ): (number | boolean)[] {
+    return references.map((ref) => this.resolveValue(ref, context));
+  }
+
+  /**
+   * Checks if a variable reference can be resolved without throwing
+   */
+  canResolve(
+    reference: string | number | boolean,
+    context: VariableContext
+  ): boolean {
+    try {
+      this.resolveValue(reference, context);
+      return true;
+    } catch {
+      return false;
     }
   }
 }

@@ -19,27 +19,3 @@ export {
   isIdentifier,
   isRuleOnlyIdentifier,
 } from './identifiers';
-
-import {
-  ExpressionEvaluator,
-  type ExpressionEvaluatorConfig,
-  type VariableContext,
-} from './evaluator';
-import { ExpressionParser } from './parser';
-
-export function evaluateExpression(
-  expression: string,
-  context: VariableContext = { inputs: {}, constants: {}, calculated: {} },
-  evaluatorConfig?: ExpressionEvaluatorConfig
-): number | boolean {
-  const evaluator = new ExpressionEvaluator(evaluatorConfig);
-  const parsed = ExpressionParser.parse(expression);
-  return evaluator.evaluate(
-    parsed,
-    evaluator.createContext(
-      context.inputs,
-      context.constants,
-      context.calculated
-    )
-  );
-}

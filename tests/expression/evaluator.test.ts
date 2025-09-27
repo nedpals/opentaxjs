@@ -210,7 +210,7 @@ describe('ExpressionEvaluator', () => {
         expect(() => evaluator.evaluate(expr)).toThrow(
           expect.objectContaining({
             message: expect.stringContaining(
-              'parameter 1 must be a number, got boolean'
+              "parameter 'a' must be a number, got boolean"
             ),
           })
         );
@@ -247,7 +247,7 @@ describe('ExpressionEvaluator', () => {
         expect(() => evaluator.evaluate(expr)).toThrow(
           expect.objectContaining({
             message: expect.stringContaining(
-              'parameter 1 must be a number, got boolean'
+              "parameter '...numbers[0]' must be a number, got boolean"
             ),
           })
         );
@@ -292,7 +292,7 @@ describe('ExpressionEvaluator', () => {
         expect(() => evaluator.evaluate(expr)).toThrow(
           expect.objectContaining({
             message: expect.stringContaining(
-              'parameter 1 must be a number, got boolean'
+              "parameter '...numbers[0]' must be a number, got boolean"
             ),
           })
         );
@@ -323,7 +323,7 @@ describe('ExpressionEvaluator', () => {
         expect(() => evaluator.evaluate(expr)).toThrow(
           expect.objectContaining({
             message: expect.stringContaining(
-              'parameter 1 must be a number, got boolean'
+              "parameter '...numbers[0]' must be a number, got boolean"
             ),
           })
         );
@@ -348,7 +348,7 @@ describe('ExpressionEvaluator', () => {
         expect(() => evaluator.evaluate(expr)).toThrow(
           expect.objectContaining({
             message: expect.stringContaining(
-              'parameter 1 must be a number, got boolean'
+              "parameter 'value' must be a number, got boolean"
             ),
           })
         );
@@ -457,9 +457,10 @@ describe('ExpressionEvaluator', () => {
       const customEvaluator = new ExpressionEvaluator({
         builtinFunctions: {
           double: {
-            parameters: [{ name: 'x', type: 'number' }],
-            callback: (num: unknown) => {
-              return (num as number) * 2;
+            parameters: [{ name: 'x', type: 'number', required: true }],
+            callback: (args: Record<string, unknown>) => {
+              const { x } = args as { x: number };
+              return x * 2;
             },
           },
         },
