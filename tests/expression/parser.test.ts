@@ -3,8 +3,8 @@ import {
   type CallExpression,
   ExpressionParseError,
   ExpressionParser,
-} from '../../src/expression/parser';
-import { isIdentifier } from '../../src/expression/identifiers';
+} from '@/expression/parser';
+import { isIdentifier } from '@/expression/identifiers';
 
 describe('ExpressionParser', () => {
   describe('Variable References', () => {
@@ -434,8 +434,8 @@ describe('ExpressionParser', () => {
         ExpressionParser.parse('max(InvalidName)'); // Use uppercase to trigger identifier validation
       } catch (error) {
         expect(error).toBeInstanceOf(ExpressionParseError);
-        expect(error.message).toContain('Invalid identifier');
-        expect(error.expression).toBe('max(InvalidName)');
+        expect((error as ExpressionParseError).message).toContain('Invalid identifier');
+        expect((error as ExpressionParseError).expression).toBe('max(InvalidName)');
       }
     });
 

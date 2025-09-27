@@ -3,9 +3,9 @@ import {
   ExpressionEvaluationError,
   ExpressionEvaluator,
   type VariableContext,
-} from '../../src/expression/evaluator';
-import { ExpressionParser } from '../../src/expression/parser';
-import { BUILTIN_FUNCTIONS, BUILTINS } from '../../src/expression/builtins';
+} from '@/expression/evaluator';
+import { ExpressionParser } from '@/expression/parser';
+import { BUILTIN_FUNCTIONS, BUILTINS } from '@/expression/builtins';
 
 describe('ExpressionEvaluator', () => {
   let evaluator: ExpressionEvaluator;
