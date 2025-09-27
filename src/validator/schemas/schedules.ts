@@ -1,8 +1,8 @@
-import type { Rule } from '../types';
-import { VALID_FREQUENCIES } from '../types';
+import type { RawRule } from '../types';
 import type { ValidationIssue } from '../errors';
+import { VALID_FREQUENCIES } from '../../types';
 
-export function validateFilingSchedules(rule: Rule): ValidationIssue[] {
+export function validateFilingSchedules(rule: RawRule): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
   if (!rule.filing_schedules || rule.filing_schedules.length === 0) {

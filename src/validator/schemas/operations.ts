@@ -1,6 +1,11 @@
-import type { Rule, FlowStep, Operation, ConditionalCase } from '../types';
-import { VALID_OPERATION_TYPES } from '../types';
+import type {
+  RawRule,
+  RawFlowStep,
+  RawOperation,
+  RawConditionalCase,
+} from '../types';
 import type { ValidationIssue } from '../errors';
+import { VALID_OPERATION_TYPES } from '../../types';
 import { isRuleOnlyIdentifier } from '../../expression/identifiers';
 
 function validateValueReference(
@@ -69,8 +74,8 @@ function validateValueReference(
 }
 
 function validateOperation(
-  rule: Rule,
-  operation: Operation,
+  rule: RawRule,
+  operation: RawOperation,
   stepIndex: number,
   operationIndex: number
 ): ValidationIssue[] {
@@ -156,8 +161,8 @@ function validateOperation(
 }
 
 function validateFlowStep(
-  rule: Rule,
-  step: FlowStep,
+  rule: RawRule,
+  step: RawFlowStep,
   index: number
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
@@ -241,8 +246,8 @@ function validateFlowStep(
 }
 
 function validateConditionalCase(
-  rule: Rule,
-  caseItem: ConditionalCase,
+  rule: RawRule,
+  caseItem: RawConditionalCase,
   stepIndex: number,
   caseIndex: number
 ): ValidationIssue[] {
@@ -278,7 +283,7 @@ function validateConditionalCase(
   return issues;
 }
 
-export function validateOperationsAndFlow(rule: Rule): ValidationIssue[] {
+export function validateOperationsAndFlow(rule: RawRule): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
   if (!Array.isArray(rule.flow) || rule.flow.length === 0) {

@@ -1,11 +1,11 @@
 import type {
-  Rule,
+  RawRule,
   ConditionalExpression,
   ComparisonOperator,
   LogicalExpression,
 } from '../types';
-import { COMPARISON_OPERATORS, LOGICAL_OPERATORS } from '../types';
 import type { ValidationIssue } from '../errors';
+import { COMPARISON_OPERATORS, LOGICAL_OPERATORS } from '../../types';
 
 function validateComparisonOperator(
   operator: ComparisonOperator,
@@ -64,7 +64,7 @@ function validateComparisonOperator(
 
 function validateLogicalExpression(
   expression: LogicalExpression,
-  rule: Rule,
+  rule: RawRule,
   path: string
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
@@ -135,7 +135,7 @@ function validateLogicalExpression(
 
 function validateConditionalExpression(
   expression: ConditionalExpression,
-  rule: Rule,
+  rule: RawRule,
   path: string
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
@@ -187,7 +187,7 @@ function validateConditionalExpression(
   return issues;
 }
 
-export function validateConditionalLogic(rule: Rule): ValidationIssue[] {
+export function validateConditionalLogic(rule: RawRule): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
   rule.flow.forEach((step, stepIndex) => {

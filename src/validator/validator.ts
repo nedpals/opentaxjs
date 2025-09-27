@@ -1,4 +1,4 @@
-import type { Rule, ValidatorConfig } from './types';
+import type { RawRule, ValidatorConfig } from './types';
 import type { ValidationIssue, ValidationSeverity } from './errors';
 import { RuleValidationError } from './errors';
 import { validateMetadata } from './schemas/metadata';
@@ -41,7 +41,7 @@ export class RuleValidator {
       return this.issues;
     }
 
-    const typedRule = ruleObj as unknown as Rule;
+    const typedRule = ruleObj as unknown as RawRule;
 
     this.runValidation(
       () => validateMetadata(typedRule, this.config),

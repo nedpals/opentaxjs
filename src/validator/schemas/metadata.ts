@@ -1,5 +1,5 @@
-import type { Rule, ValidatorConfig } from '../types';
-import { VALID_TAXPAYER_TYPES } from '../types';
+import type { RawRule, ValidatorConfig } from '../types';
+import { VALID_TAXPAYER_TYPES } from '../../types';
 import type { ValidationIssue } from '../errors';
 
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
@@ -7,7 +7,7 @@ const ISO_COUNTRY_CODE_REGEX = /^[A-Z]{2}$/;
 const VERSION_REGEX = /^\d+\.\d+\.\d+$/;
 
 export function validateMetadata(
-  rule: Rule,
+  rule: RawRule,
   config: ValidatorConfig
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];

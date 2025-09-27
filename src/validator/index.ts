@@ -7,14 +7,14 @@ export type {
 export { RuleValidationError } from './errors';
 
 export type {
-  Rule,
-  VariableSchema,
-  Table,
-  TableBracket,
-  FilingSchedule,
-  FlowStep,
-  Operation,
-  ConditionalCase,
+  RawRule,
+  RawVariableSchema,
+  RawTable,
+  RawTableBracket,
+  RawFilingSchedule,
+  RawFlowStep,
+  RawOperation,
+  RawConditionalCase,
   ConditionalExpression,
   ComparisonOperator,
   LogicalExpression,
