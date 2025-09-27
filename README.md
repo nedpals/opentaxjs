@@ -1,5 +1,6 @@
 # opentaxjs
-opentaxjs is a proposed JavaScript library designed to handle tax calculations based on predefined rules. It allows developers to implement tax logic in their applications easily. For now, this is primarily designed for the Philippine tax system, but it can be extended to support other tax systems as well.
+
+opentaxjs is a JavaScript library designed to handle tax calculations based on predefined rules. It allows developers to implement tax logic in their applications using a structured, auditable, and maintainable rules format. While initially designed for the Philippine tax system, it can be extended to support other tax systems as well.
 
 ## Motivation
 Stumbling upon the [tax directory subsite of BetterGov.ph](https://taxdirectory.bettergov.ph/), I noticed significant gaps and inconsistencies in its tax calculation feature. This is not an isolated issue; many similar websites and applications force developers to implement their own custom logic, which leads to problems with accuracy, consistency, and testability.
@@ -18,53 +19,200 @@ This project **DOES NOT** aim to:
 2. Replace official tax filing systems or services.
 3. Handle complex tax scenarios that require legal or financial advice.
 
-## Current Status
-The project has made significant progress beyond the initial specification phase. Currently:
-- The [rules specification](RULES_SPEC.md) is complete and comprehensive.
-- An accompanying JSON schema ([0.1.0.json](schema/0.1.0.json)) has been created to validate the rules format.
-- Infrastructure for the development of the library is complete.
-- The expression parser and evaluator have been implemented.
-- The core rule evaluation engine is complete and supports all specification features.
-- The public API has been implemented with TypeScript types and comprehensive test coverage.
-- Period calculation and filing schedule generation are functional.
+## Features
 
-The library is ready for use with basic tax calculations following the opentaxjs specification.
+- **Declarative tax rules**: Define complex tax logic in structured JSON format, separating tax calculations from application code for easier maintenance and updates
+- **Built for accuracy**: Comprehensive validation, audit trails, and transparent calculations ensure your tax computations are correct and verifiable
+- **Handle real-world complexity**: Progressive brackets, conditional logic, mid-period employment, and pro-rated calculations work out of the box
+- **Developer-friendly**: TypeScript-first API with detailed error messages and comprehensive documentation gets you running quickly
+- **Extensible by design**: Add new tax jurisdictions, rules, and scenarios without changing your application code
 
-For more details on the direction of this project, please refer to [ROADMAP.md](ROADMAP.md)
+For more details on the project roadmap, please refer to [ROADMAP.md](ROADMAP.md)
 
-## API Usage
+## Installation
+
+```bash
+npm install opentaxjs
+```
+
+## Quick Start
 
 ```typescript
 import opentax from 'opentaxjs';
-import incomeTaxRule from './bir/income_tax.json';
 
-const incomeTax = opentax({ rule: incomeTaxRule }).calculate({
+// Import a tax rule or fetch from a remote source
+import incomeTaxRule from './rules/income_tax.json';
+
+// Initialize the tax calculator with a rule
+const calculator = opentax({ rule: incomeTaxRule });
+
+// Calculate tax liability
+const result = calculator.calculate({
   gross_income: 500000,
   deductions: 100000,
-  is_freelance: true
+  filing_status: 'single'
 });
 
-console.log(incomeTax.liabilities);
-// [
-//   { name: "Quarterly Income Tax Filing", type: "quarterly", iter: 1, amount: 12000, target_filing_date: Date },
-//   { name: "Quarterly Income Tax Filing", type: "quarterly", iter: 2, amount: 12000, target_filing_date: Date },
-//   { name: "Quarterly Income Tax Filing", type: "quarterly", iter: 3, amount: 12000, target_filing_date: Date },
-//   { name: "Quarterly Income Tax Filing", type: "quarterly", iter: 4, amount: 12000, target_filing_date: Date },
-//   { name: "Annual Income Tax Filing", type: "annual", iter: 1, amount: 48000, target_filing_date: Date }
-// ]
+console.log(result.liability); // 75000
+console.log(result.liabilities); // Filing schedule with amounts and dates
+```
 
-// For mid-period employment scenarios
-const midYearIncome = opentax({ rule: incomeTaxRule }).calculate({
-  gross_income: 500000,
-  deductions: 100000,
-  is_freelance: true
+## API Reference
+
+### `opentax(config: OpenTaxConfig)`
+
+Creates a new tax calculator instance.
+
+**Parameters:**
+- `config.rule`: A rule object conforming to the opentaxjs specification
+
+**Returns:** `OpenTaxInstance`
+
+### `calculate(inputs, options?)`
+
+Performs tax calculation based on provided inputs.
+
+**Parameters:**
+- `inputs`: Object containing input values as defined in the rule
+- `options?`: Optional period calculation options for mid-year scenarios
+  - `start_date?: string` - Start date in YYYY-MM-DD format
+  - `end_date?: string` - End date in YYYY-MM-DD format
+
+**Returns:** `CalculationResult`
+- `liability: number` - Total tax liability
+- `liabilities: TaxLiability[]` - Filing schedule with amounts and dates
+- `calculated: VariableMap` - All calculated values during execution
+- `inputs: VariableMap` - Input values used in calculation
+- `period?: PeriodInfo` - Period information for pro-rated calculations
+- `debug?: object` - Debug information and execution context
+
+## Advanced Usage
+
+### Mid-Period Employment
+
+```typescript
+const result = calculator.calculate({
+  gross_income: 300000,
+  filing_status: 'single'
 }, {
-  start_date: "2024-02-15",  // Started mid-February
-  end_date: "2024-12-31"     // Optional, defaults to current date
+  start_date: "2024-03-15", // Started mid-March
+  end_date: "2024-12-31"
 });
 
-console.log(midYearIncome.liabilities);
-// Automatically calculates pro-rated amounts for partial periods
+// Automatically calculates pro-rated quarterly amounts
+console.log(result.liabilities);
+```
+
+### Error Handling
+
+```typescript
+import { RuleValidationError } from 'opentaxjs';
+
+try {
+  const calculator = opentax({ rule: invalidRule });
+} catch (error) {
+  if (error instanceof RuleValidationError) {
+    console.error('Rule validation failed:', error.issues);
+  }
+}
+```
+
+### Accessing Calculation Details
+
+```typescript
+const result = calculator.calculate(inputs);
+
+// Access all calculated variables
+console.log(result.calculated.taxable_income);
+
+// Access debug information
+console.log(result.debug?.context);
+
+// Get filing schedule details
+result.liabilities.forEach(liability => {
+  console.log(`${liability.name}: ${liability.amount} due ${liability.target_filing_date}`);
+});
+```
+
+## Creating Tax Rules
+
+Tax rules are defined using JSON files that conform to the opentaxjs specification. Here's a minimal example:
+
+```json
+{
+  "$version": "1.0.0",
+  "name": "Simple Income Tax",
+  "jurisdiction": "PH",
+  "taxpayer_type": "INDIVIDUAL",
+  "constants": {
+    "tax_rate": 0.25,
+    "exemption": 250000
+  },
+  "inputs": {
+    "gross_income": {
+      "type": "number",
+      "description": "Annual gross income"
+    }
+  },
+  "outputs": {
+    "taxable_income": {
+      "type": "number",
+      "description": "Income subject to tax"
+    }
+  },
+  "flow": [
+    {
+      "name": "Calculate taxable income",
+      "operations": [
+        {
+          "type": "set",
+          "target": "taxable_income",
+          "value": "$gross_income"
+        },
+        {
+          "type": "subtract",
+          "target": "taxable_income",
+          "value": "$$exemption"
+        },
+        {
+          "type": "set",
+          "target": "taxable_income",
+          "value": "max(taxable_income, 0)"
+        }
+      ]
+    },
+    {
+      "name": "Calculate tax liability",
+      "operations": [
+        {
+          "type": "set",
+          "target": "liability",
+          "value": "taxable_income"
+        },
+        {
+          "type": "multiply",
+          "target": "liability",
+          "value": "$$tax_rate"
+        }
+      ]
+    }
+  ]
+}
+```
+
+For complete documentation on creating tax rules, see the [Rules Specification](RULES_SPEC.md).
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit issues, feature requests, or pull requests. For major changes, please open an issue first to discuss what you would like to change.
+
+### Development Setup
+
+```bash
+git clone https://github.com/nedpals/opentaxjs.git
+cd opentaxjs
+npm install
+npm run test
 ```
 
 ## License
