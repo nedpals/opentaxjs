@@ -1,7 +1,7 @@
 {
   "name": "opentaxjs",
   "version": "0.1.0",
-  "description": "An open-source, rules-based engine for accurate and consistent Philippine tax calculations. Work in progress.",
+  "description": "An open-source, rules-based engine for accurate and consistent Philippine tax calculations.",
   "main": "./dist/index.js",
   "module": "./dist/index.esm.js",
   "browser": "./dist/index.browser.js",
@@ -15,7 +15,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "rules",
+    "schema"
   ],
   "scripts": {
     "build": "esbuild src/index.ts --bundle --outfile=dist/index.js --format=cjs --platform=node",
@@ -38,6 +40,16 @@
   },
   "author": "Ned Palacios <nedpals@gmail.com>",
   "license": "MIT",
+  "keywords": [
+    "tax",
+    "tax-calculation",
+    "philippines",
+    "rules-engine",
+    "opentax",
+    "income-tax",
+    "bir",
+    "tax-rules"
+  ],
   "bugs": {
     "url": "https://github.com/nedpals/opentaxjs/issues"
   },
