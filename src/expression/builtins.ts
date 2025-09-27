@@ -1,5 +1,5 @@
 import type { FunctionDefinition, FunctionContext } from '@/symbol';
-import type { Table } from '@/types';
+import type { Table, VariableMap } from '@/types';
 
 export const BUILTIN_FUNCTIONS: Record<string, FunctionDefinition> = {
   diff: {
@@ -130,14 +130,11 @@ export const BUILTIN_FUNCTIONS: Record<string, FunctionDefinition> = {
   },
 };
 
-export const BUILTIN_CONSTANTS: Record<string, number | boolean | string> = {
+export const BUILTIN_CONSTANTS: VariableMap = {
   MAX_TAXABLE_INCOME: 9007199254740991, // IEEE 754 maximum safe integer
 };
 
-export const BUILTIN_OUTPUT_VARIABLES: Record<
-  string,
-  number | boolean | string
-> = {
+export const BUILTIN_OUTPUT_VARIABLES: VariableMap = {
   liability: 0,
 };
 

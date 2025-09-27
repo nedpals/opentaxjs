@@ -1,3 +1,4 @@
+import { VariableMap, VariableValue } from '@/types';
 import type {
   BooleanLiteral,
   CalculatedVariableExpression,
@@ -9,19 +10,24 @@ import type {
   StringLiteral,
 } from './parser';
 import { ExpressionParser } from './parser';
-import { type FunctionDefinition, SymbolRegistry } from '@/symbol';
+import {
+  BuiltinSymbols,
+  FunctionContext,
+  type FunctionDefinition,
+  SymbolRegistry,
+} from '@/symbol';
 
 export interface VariableContext {
-  inputs: Record<string, number | boolean | string>;
-  constants: Record<string, number | boolean | string>;
-  calculated: Record<string, number | boolean | string>;
-  tables?: Record<string, unknown>;
+  inputs: VariableMap;
+  constants: VariableMap;
+  calculated: VariableMap;
+  tables?: FunctionContext['tables'];
 }
 
 export interface ExpressionEvaluatorConfig {
-  builtinFunctions?: Record<string, FunctionDefinition>;
-  builtinConstants?: Record<string, number | boolean | string>;
-  builtinVariables?: Record<string, number | boolean | string>;
+  builtinFunctions?: BuiltinSymbols['functions'];
+  builtinConstants?: BuiltinSymbols['constants'];
+  builtinVariables?: BuiltinSymbols['variables'];
 }
 
 export class ExpressionEvaluationError extends Error {
@@ -56,7 +62,7 @@ export class ExpressionEvaluator {
   evaluate(
     expression: string | ParsedExpression,
     context: VariableContext = { inputs: {}, constants: {}, calculated: {} }
-  ): number | boolean | string {
+  ): VariableValue {
     try {
       // Parse the expression if it's a string
       const parsedExpression =
@@ -142,7 +148,7 @@ export class ExpressionEvaluator {
   private evaluateExpression(
     expression: ParsedExpression,
     context: VariableContext
-  ): number | boolean | string {
+  ): VariableValue {
     switch (expression.type) {
       case 'number_literal':
         return this.evaluateNumberLiteral(expression);
@@ -191,7 +197,7 @@ export class ExpressionEvaluator {
   private evaluateInputVariable(
     expression: InputVariableExpression,
     context: VariableContext
-  ): number | boolean | string {
+  ): VariableValue {
     const { name } = expression;
 
     // Validate symbol usage
@@ -211,7 +217,7 @@ export class ExpressionEvaluator {
   private evaluateConstantVariable(
     expression: ConstantVariableExpression,
     context: VariableContext
-  ): number | boolean | string {
+  ): VariableValue {
     const { name } = expression;
 
     // Validate symbol usage
@@ -237,7 +243,7 @@ export class ExpressionEvaluator {
   private evaluateCalculatedVariable(
     expression: CalculatedVariableExpression,
     context: VariableContext
-  ): number | boolean | string {
+  ): VariableValue {
     const { name } = expression;
 
     // Validate symbol usage
@@ -262,7 +268,7 @@ export class ExpressionEvaluator {
   private evaluateCall(
     expression: CallExpression,
     context: VariableContext
-  ): number | boolean | string {
+  ): VariableValue {
     const { name, parameters } = expression;
 
     // Validate symbol usage - must be used as function
@@ -276,10 +282,7 @@ export class ExpressionEvaluator {
       );
     }
 
-    const evaluatedParams: Record<
-      string,
-      number | boolean | string | (number | boolean | string)[]
-    > = {};
+    const evaluatedParams: Record<string, VariableValue | VariableValue[]> = {};
 
     const func = this.config.builtinFunctions[name];
     if (!func) {
@@ -301,7 +304,7 @@ export class ExpressionEvaluator {
     if (isVariadic) {
       // For variadic functions, collect all parameters into an array
       const paramName = schema[0].name || 'args';
-      const paramValues: (number | boolean | string)[] = [];
+      const paramValues: VariableValue[] = [];
 
       for (const param of parameters) {
         try {
@@ -378,10 +381,7 @@ export class ExpressionEvaluator {
   private validateFunctionParameters(
     funcName: string,
     func: FunctionDefinition,
-    params: Record<
-      string,
-      number | boolean | string | (number | boolean | string)[]
-    >,
+    params: Record<string, VariableValue | VariableValue[]>,
     expression: CallExpression,
     context: VariableContext
   ): void {
@@ -480,17 +480,5 @@ export class ExpressionEvaluator {
         }
       }
     }
-  }
-
-  private createContext(
-    inputs: Record<string, number | boolean | string> = {},
-    constants: Record<string, number | boolean | string> = {},
-    calculated: Record<string, number | boolean | string> = {}
-  ): VariableContext {
-    return {
-      inputs,
-      constants: { ...this.config.builtinConstants, ...constants },
-      calculated: { ...this.config.builtinVariables, ...calculated },
-    };
   }
 }

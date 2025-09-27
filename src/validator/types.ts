@@ -1,4 +1,10 @@
-import type { TaxpayerType, OperationType, FilingFrequency } from '@/types';
+import type {
+  TaxpayerType,
+  OperationType,
+  FilingFrequency,
+  VariableValue,
+  VariableMap,
+} from '@/types';
 
 export interface RawRule {
   $version: string;
@@ -10,7 +16,7 @@ export interface RawRule {
   taxpayer_type: TaxpayerType | string;
   category?: string;
   author?: string;
-  constants?: Record<string, number | boolean | string>;
+  constants?: VariableMap;
   tables?: RawTable[];
   inputs?: Record<string, RawVariableSchema>;
   outputs?: Record<string, RawVariableSchema>;
@@ -62,7 +68,7 @@ export interface RawFlowStep {
 export interface RawOperation {
   type: OperationType;
   target: string;
-  value?: string | number | boolean;
+  value?: VariableValue;
   table?: string;
 }
 

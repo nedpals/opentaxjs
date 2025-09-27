@@ -1,3 +1,5 @@
+import { VariableMap, VariableValue } from '@/types';
+
 export interface SymbolInfo {
   name: string;
   symbolType:
@@ -11,8 +13,8 @@ export interface SymbolInfo {
 
 export interface BuiltinSymbols {
   functions?: Record<string, FunctionDefinition>;
-  constants?: Record<string, number | boolean | string>;
-  variables?: Record<string, number | boolean | string>;
+  constants?: VariableMap;
+  variables?: VariableMap;
 }
 
 export interface FunctionContext {
@@ -47,9 +49,9 @@ export class VariableResolutionError extends Error {
 }
 
 export interface VariableContext {
-  inputs: Record<string, number | boolean | string>;
-  constants: Record<string, number | boolean | string>;
-  calculated: Record<string, number | boolean | string>;
+  inputs: Record<string, VariableValue>;
+  constants: Record<string, VariableValue>;
+  calculated: Record<string, VariableValue>;
 }
 
 export class SymbolRegistry {
@@ -147,9 +149,9 @@ export class SymbolRegistry {
    * @returns The resolved value
    */
   resolveValue(
-    reference: string | number | boolean,
+    reference: VariableValue,
     context: VariableContext
-  ): number | boolean | string {
+  ): VariableValue {
     // Return primitives as-is
     if (typeof reference === 'number' || typeof reference === 'boolean') {
       return reference;
@@ -170,7 +172,7 @@ export class SymbolRegistry {
   private resolveVariable(
     varName: string,
     context: VariableContext
-  ): number | boolean | string {
+  ): VariableValue {
     // Input variable ($prefix)
     if (varName.startsWith('$') && !varName.startsWith('$$')) {
       const inputName = varName.slice(1);
@@ -218,7 +220,7 @@ export class SymbolRegistry {
   private resolveUnprefixedVariable(
     varName: string,
     context: VariableContext
-  ): number | boolean | string {
+  ): VariableValue {
     // Priority: calculated > inputs > constants
     if (varName in context.calculated) {
       return context.calculated[varName];
@@ -242,7 +244,7 @@ export class SymbolRegistry {
   private getInputValue(
     inputName: string,
     context: VariableContext
-  ): number | boolean | string {
+  ): VariableValue {
     if (inputName in context.inputs) {
       return context.inputs[inputName];
     }
@@ -258,7 +260,7 @@ export class SymbolRegistry {
   private getConstantValue(
     constName: string,
     context: VariableContext
-  ): number | boolean | string {
+  ): VariableValue {
     if (constName in context.constants) {
       return context.constants[constName];
     }
@@ -268,23 +270,14 @@ export class SymbolRegistry {
     );
   }
 
-  /**
-   * Batch resolves multiple values efficiently
-   */
   resolveBatch(
-    references: (string | number | boolean)[],
+    references: VariableValue[],
     context: VariableContext
-  ): (number | boolean | string)[] {
+  ): VariableValue[] {
     return references.map((ref) => this.resolveValue(ref, context));
   }
 
-  /**
-   * Checks if a variable reference can be resolved without throwing
-   */
-  canResolve(
-    reference: string | number | boolean,
-    context: VariableContext
-  ): boolean {
+  canResolve(reference: VariableValue, context: VariableContext): boolean {
     try {
       this.resolveValue(reference, context);
       return true;

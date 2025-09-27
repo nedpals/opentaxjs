@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { ConditionalEvaluator } from '@/evaluator/conditional';
 import { ExpressionEvaluator } from '@/expression';
-import type { EvaluationContext, Condition } from '@/types';
+import type { EvaluationContext, Condition, VariableMap } from '@/types';
 
 describe('ConditionalEvaluator', () => {
   const evaluator = new ConditionalEvaluator(new ExpressionEvaluator());
 
   const createContext = (
-    inputs: Record<string, number | boolean> = {},
-    constants: Record<string, number | boolean> = {},
-    calculated: Record<string, number | boolean> = {}
+    inputs: VariableMap = {},
+    constants: VariableMap = {},
+    calculated: VariableMap = {}
   ): EvaluationContext => ({
     inputs,
     constants,

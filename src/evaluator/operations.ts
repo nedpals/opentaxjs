@@ -5,6 +5,7 @@ import type {
   ArithmeticOperation,
   MinMaxOperation,
   LookupOperation,
+  VariableValue,
 } from '@/types';
 import { OperationError, TableError } from './errors';
 import { ExpressionEvaluator, ExpressionEvaluationError } from '@/expression';
@@ -16,22 +17,16 @@ export type OperationFunction = (
 ) => EvaluationContext;
 
 function resolveValue(
-  value: string | number | boolean,
+  value: VariableValue,
   expressionEvaluator: ExpressionEvaluator,
   context: EvaluationContext
-): number | boolean {
+): VariableValue {
   if (typeof value === 'number' || typeof value === 'boolean') {
     return value;
   }
 
   try {
-    const result = expressionEvaluator.evaluate(value as string, {
-      inputs: context.inputs,
-      constants: context.constants,
-      calculated: context.calculated,
-      tables: context.tables,
-    });
-
+    const result = expressionEvaluator.evaluate(value as string, context);
     if (typeof result === 'string') {
       throw new Error(
         `String values are not allowed in operations: '${result}'. This should not happen. Please report a bug.`

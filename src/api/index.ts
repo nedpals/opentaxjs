@@ -3,6 +3,8 @@ import type {
   EvaluationContext,
   FilingFrequency,
   Operation,
+  VariableValue,
+  VariableMap,
 } from '@/types';
 import { validateRule, RuleValidationError } from '@/validator';
 import { RuleEvaluator } from '@/evaluator';
@@ -27,14 +29,14 @@ export interface TaxLiability {
 export interface ExecutionStep {
   step: string;
   operation?: Operation;
-  result?: string | number | boolean;
+  result?: VariableValue;
 }
 
 export interface CalculationResult {
   liability: number;
   liabilities: TaxLiability[];
-  calculated: Record<string, number | boolean | string>;
-  inputs: Record<string, number | boolean | string>;
+  calculated: VariableMap;
+  inputs: VariableMap;
   period?: PeriodInfo;
   debug?: {
     context: EvaluationContext;
@@ -48,7 +50,7 @@ export interface OpenTaxConfig {
 
 export interface OpenTaxInstance {
   calculate(
-    inputs: Record<string, number | boolean | string>,
+    inputs: VariableMap,
     options?: PeriodCalculationOptions
   ): CalculationResult;
 }
@@ -119,12 +121,11 @@ export default function opentax(config: OpenTaxConfig): OpenTaxInstance {
   const rule = config.rule;
   const evaluator = new RuleEvaluator(BUILTINS);
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-  const evaluate = (inputs: Record<string, number | boolean | string>) =>
-    evaluator.evaluate(rule, inputs);
+  const evaluate = (inputs: VariableMap) => evaluator.evaluate(rule, inputs);
 
   return {
     calculate(
-      inputs: Record<string, number | boolean | string>,
+      inputs: VariableMap,
       options?: PeriodCalculationOptions
     ): CalculationResult {
       const context = evaluate(inputs);

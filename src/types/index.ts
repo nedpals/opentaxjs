@@ -1,4 +1,7 @@
 // Shared types used across multiple modules
+export type VariableValue = number | boolean | string;
+
+export type VariableMap = Record<string, VariableValue>;
 
 export const VALID_TAXPAYER_TYPES = [
   'INDIVIDUAL',
@@ -78,23 +81,23 @@ export interface BaseOperation {
 
 export interface SetOperation extends BaseOperation {
   type: 'set';
-  value: string | number | boolean;
+  value: VariableValue;
 }
 
 export interface ArithmeticOperation extends BaseOperation {
   type: 'add' | 'subtract' | 'deduct' | 'multiply' | 'divide';
-  value: string | number | boolean;
+  value: VariableValue;
 }
 
 export interface MinMaxOperation extends BaseOperation {
   type: 'min' | 'max';
-  value: string | number | boolean;
+  value: VariableValue;
 }
 
 export interface LookupOperation extends BaseOperation {
   type: 'lookup';
   table: string;
-  value: string | number | boolean;
+  value: VariableValue;
 }
 
 export type Operation =
@@ -104,12 +107,12 @@ export type Operation =
   | LookupOperation;
 
 export interface ComparisonCondition {
-  lt?: string | number | boolean;
-  lte?: string | number | boolean;
-  gt?: string | number | boolean;
-  gte?: string | number | boolean;
-  eq?: string | number | boolean;
-  ne?: string | number | boolean;
+  lt?: VariableValue;
+  lte?: VariableValue;
+  gt?: VariableValue;
+  gte?: VariableValue;
+  eq?: VariableValue;
+  ne?: VariableValue;
 }
 
 export interface LogicalCondition {
@@ -141,7 +144,7 @@ export interface Rule {
   jurisdiction: string;
   taxpayer_type: string;
   author: string;
-  constants: Record<string, number | boolean | string>;
+  constants: VariableMap;
   tables: Table[];
   inputs: Record<string, VariableDeclaration>;
   outputs: Record<string, VariableDeclaration>;
@@ -150,8 +153,8 @@ export interface Rule {
 }
 
 export interface EvaluationContext {
-  inputs: Record<string, number | boolean | string>;
-  constants: Record<string, number | boolean | string>;
-  calculated: Record<string, number | boolean | string>;
+  inputs: VariableMap;
+  constants: VariableMap;
+  calculated: VariableMap;
   tables: Record<string, Table>;
 }

@@ -3,6 +3,7 @@ import type {
   ComparisonCondition,
   LogicalCondition,
   EvaluationContext,
+  VariableValue,
 } from '@/types';
 import { RuleEvaluationError } from './errors';
 import { ExpressionEvaluator, ExpressionEvaluationError } from '@/expression';
@@ -91,7 +92,7 @@ export class ConditionalEvaluator {
   }
 
   private evaluateComparison(
-    value: number | boolean | string,
+    value: VariableValue,
     comparison: ComparisonCondition,
     context: EvaluationContext
   ): boolean {
@@ -165,9 +166,9 @@ export class ConditionalEvaluator {
   }
 
   private resolveComparisonValue(
-    value: string | number | boolean,
+    value: VariableValue,
     context: EvaluationContext
-  ): number | boolean | string {
+  ): VariableValue {
     if (typeof value === 'number' || typeof value === 'boolean') {
       return value;
     }

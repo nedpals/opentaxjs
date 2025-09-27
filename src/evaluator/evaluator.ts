@@ -4,6 +4,7 @@ import type {
   Operation,
   FlowStep,
   Table,
+  VariableMap,
 } from '@/types';
 import { RuleEvaluationError, OperationError } from './errors';
 import { OPERATION_REGISTRY } from './operations';
@@ -21,10 +22,7 @@ export class RuleEvaluator {
     );
   }
 
-  evaluate(
-    rule: Rule,
-    inputs: Record<string, number | boolean | string> = {}
-  ): EvaluationContext {
+  evaluate(rule: Rule, inputs: VariableMap = {}): EvaluationContext {
     try {
       const context = this.createContext(rule, inputs);
       const finalContext = this.processFlow(rule.flow, context);
@@ -52,10 +50,7 @@ export class RuleEvaluator {
     }
   }
 
-  private createContext(
-    rule: Rule,
-    inputs: Record<string, number | boolean | string>
-  ): EvaluationContext {
+  private createContext(rule: Rule, inputs: VariableMap): EvaluationContext {
     // Validate required inputs
     for (const [inputName, inputDecl] of Object.entries(rule.inputs)) {
       if (!(inputName in inputs)) {
