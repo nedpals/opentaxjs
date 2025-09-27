@@ -33,8 +33,11 @@ This specification is primarily intended for **implementers and contributors** t
    - 8.2. [Default Cases](#82-default-cases)
 9. [Expressions](#9-expressions)
 10. [Operations](#10-operations)
-    - 10.1. [Operation Types](#101-operation-types)
-    - 10.2. [Operation Best Practices](#102-operation-best-practices)
+    - 10.1. [Defining an Operation](#101-defining-an-operation)
+    - 10.2. [Operation Types](#102-operation-types)
+    - 10.3. [Using Expressions in Operations](#103-using-expressions-in-operations)
+    - 10.4. [Operations vs Functions](#104-operations-vs-functions)
+    - 10.5. [Operation Best Practices](#105-operation-best-practices)
 11. [Standard Library](#11-standard-library)
     - 11.1. [Predefined Constants](#111-predefined-constants)
     - 11.2. [Predefined Variables](#112-predefined-variables)
@@ -239,9 +242,9 @@ A complete rule is a JSON object containing all the components needed for tax ca
           "value": "$$standard_deduction"
         },
         {
-          "type": "max",
+          "type": "set",
           "target": "taxable_income",
-          "value": 0
+          "value": "max(taxable_income, 0)"
         }
       ]
     },
@@ -275,10 +278,9 @@ A complete rule is a JSON object containing all the components needed for tax ca
           },
           "operations": [
             {
-              "type": "lookup",
+              "type": "set",
               "target": "liability",
-              "table": "income_tax_brackets",
-              "value": "taxable_income"
+              "value": "lookup(income_tax_brackets, taxable_income)"
             }
           ]
         }
@@ -288,9 +290,9 @@ A complete rule is a JSON object containing all the components needed for tax ca
       "name": "Ensure non-negative liability",
       "operations": [
         {
-          "type": "max",
+          "type": "set",
           "target": "liability",
-          "value": 0
+          "value": "max(liability, 0)"
         }
       ]
     }
@@ -675,7 +677,7 @@ The following operation uses an expression with a variable reference as its valu
 
 Operations define the actions that can be performed on variables during tax calculations. They are the building blocks of the calculation flow and allow you to manipulate values, perform arithmetic, and store results.
 
-### Defining an Operation
+### 10.1. Defining an Operation
 
 Each operation is a JSON object that specifies the action to be performed. All operations have a `type` property that defines the kind of operation, and most have a `target` property that specifies which variable to modify.
 
@@ -688,7 +690,7 @@ Basic operation structure:
 }
 ```
 
-### 10.1. Operation Types
+### 10.2. Operation Types
 
 The following operation types are supported:
 
@@ -763,53 +765,11 @@ Divides the target variable by a value.
 }
 ```
 
-#### `min`
-Sets the target variable to the minimum value between its current value and the specified value.
 
-```json
-{
-  "type": "min",
-  "target": "liability",
-  "value": "$$maximum_tax_cap"
-}
-```
 
-#### `max`
-Sets the target variable to the maximum value between its current value and the specified value.
 
-```json
-{
-  "type": "max",
-  "target": "taxable_income",
-  "value": 0
-}
-```
 
-#### `lookup`
-Calculates a value based on a table lookup, primarily used for progressive tax brackets. This operation finds the appropriate bracket for the given value and calculates the tax based on the bracket structure.
-
-```json
-{
-  "type": "lookup",
-  "target": "liability",
-  "table": "income_tax_brackets",
-  "value": "taxable_income"
-}
-```
-
-The lookup operation works by:
-1. Finding the bracket where `value` falls between `min` and `max`
-2. Calculating the tax for the amount within that bracket using the bracket's `rate`
-3. Adding the `base_tax` from lower brackets
-4. Setting the result to the target variable
-
-**Note:** For unlimited tax brackets, use the predefined constant `$$MAX_TAXABLE_INCOME` as the `max` value.
-
-**Example calculation:**
-- If `taxable_income` is 500,000 and falls in the 400,000+ bracket (25% rate, 30,000 base tax)
-- Tax = 30,000 + (500,000 - 400,000) × 0.25 = 55,000
-
-### Using Expressions in Operations
+### 10.3. Using Expressions in Operations
 
 Operations can use expressions and function calls in their `value` property. The following expression types are supported:
 
@@ -846,11 +806,35 @@ Operations can use expressions and function calls in their `value` property. The
 - This maintains auditability by keeping each operation atomic and traceable
 - Multi-step calculations must be broken into separate operations with intermediate variables
 
-### 10.2. Operation Best Practices
+### 10.4. Operations vs Functions
+
+The specification distinguishes between **operations** and **functions** to balance auditability with composability:
+
+- **Operations** mutate variables and create audit trails by showing explicit state changes step-by-step. They are the building blocks for clear, traceable tax calculations.
+- **Functions** return calculated values and can be composed within expressions. They handle mathematical utilities and complex calculations.
+
+This separation ensures that core tax logic remains auditable while enabling flexible expression of mathematical operations.
+
+**Operations include:**
+- `set`, `add`, `subtract`/`deduct`, `multiply`, `divide`
+
+**Functions include:**
+- `min`, `max`, `lookup`, `diff`, `sum`, `round`
+
+**Usage pattern:** Use functions within `set` operations to maintain audit trails:
+```json
+{
+  "type": "set",
+  "target": "taxable_income", 
+  "value": "max(gross_income, 0)"
+}
+```
+
+### 10.5. Operation Best Practices
 
 When writing operations, follow these best practices to ensure clarity and maintainability:
 
-#### Use Descriptive Variable Names
+#### 10.5.1. Use Descriptive Variable Names
 Choose variable names that clearly describe what they represent:
 
 ```json
@@ -869,7 +853,7 @@ Choose variable names that clearly describe what they represent:
 }
 ```
 
-#### Group Related Operations
+#### 10.5.2. Group Related Operations
 Organize operations into logical steps within the flow:
 
 ```json
@@ -887,16 +871,16 @@ Organize operations into logical steps within the flow:
       "value": "$$standard_deduction"
     },
     {
-      "type": "max",
+      "type": "set",
       "target": "taxable_income",
-      "value": 0
+      "value": "max(taxable_income, 0)"
     }
   ]
 }
 ```
 
 
-#### Use Meaningful Step Names
+#### 10.5.3. Use Meaningful Step Names
 Give each step in the flow a clear, descriptive name:
 
 ```json
@@ -910,7 +894,7 @@ Give each step in the flow a clear, descriptive name:
 }
 ```
 
-#### Handle Edge Cases
+#### 10.5.4. Handle Edge Cases
 Use conditional cases to handle different scenarios:
 
 ```json
@@ -992,6 +976,30 @@ The following built-in functions are available for use in expressions and operat
 | `max(a, b, ...)` | `...`: Numbers | Returns the maximum value among the provided values |
 | `min(a, b, ...)` | `...`: Numbers | Returns the minimum value among the provided values |
 | `round(value, decimals?)` | `value`: Number, `decimals?`: Number (default: 0) | Rounds a value to the specified number of decimal places |
+| `lookup(table, value)` | `table`: String, `value`: Number | Calculates a value based on a progressive tax bracket lookup. Finds the bracket where `value` falls between `min` and `max`, calculates tax using the bracket's `rate`, and adds `base_tax` from lower brackets. |
+
+**Lookup Function Details:**
+
+The `lookup(table, value)` function works by:
+1. Finding the bracket where `value` falls between `min` and `max`
+2. Calculating the tax for the amount within that bracket using the bracket's `rate`
+3. Adding the `base_tax` from lower brackets
+4. Returning the calculated result
+
+**Note:** For unlimited tax brackets, use the predefined constant `$$MAX_TAXABLE_INCOME` as the `max` value.
+
+**Example calculation:**
+- If `taxable_income` is 500,000 and falls in the 400,000+ bracket (25% rate, 30,000 base tax)
+- Tax = 30,000 + (500,000 - 400,000) × 0.25 = 55,000
+
+**Usage:**
+```json
+{
+  "type": "set",
+  "target": "liability",
+  "value": "lookup(income_tax_brackets, taxable_income)"
+}
+```
 
 These functions can be used in conditional expressions and operation values to perform common calculations needed in tax computations.
 
