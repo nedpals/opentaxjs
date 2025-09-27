@@ -2,17 +2,14 @@ import type { Rule, EvaluationContext, Operation, FlowStep } from '@/types';
 import { RuleEvaluationError, OperationError } from './errors';
 import { OPERATION_REGISTRY } from './operations';
 import { ConditionalEvaluator } from './conditional';
-import { ExpressionEvaluator } from '@/expression';
+import { ExpressionEvaluator, ExpressionEvaluatorConfig } from '@/expression';
 
 export class RuleEvaluator {
   private conditionalEvaluator: ConditionalEvaluator;
   private expressionEvaluator: ExpressionEvaluator;
 
-  constructor() {
-    // Create expression evaluator with default configuration
-    this.expressionEvaluator = new ExpressionEvaluator();
-
-    // Create conditional evaluator with shared expression evaluator
+  constructor(exprEvalConfig?: ExpressionEvaluatorConfig) {
+    this.expressionEvaluator = new ExpressionEvaluator(exprEvalConfig);
     this.conditionalEvaluator = new ConditionalEvaluator(
       this.expressionEvaluator
     );
@@ -23,19 +20,14 @@ export class RuleEvaluator {
     inputs: Record<string, number | boolean> = {}
   ): Record<string, number | boolean> {
     try {
-      // Initialize evaluation context
       const context = this.createContext(rule, inputs);
-
-      // Process flow steps
       const finalContext = this.processFlow(rule.flow, context);
-
-      // Return only the calculated variables that match rule outputs
       const results: Record<string, number | boolean> = {};
+
       for (const outputName of Object.keys(rule.outputs)) {
         if (outputName in finalContext.calculated) {
           results[outputName] = finalContext.calculated[outputName];
         } else {
-          // Initialize missing outputs to 0 or false based on their type
           const outputType = rule.outputs[outputName].type;
           results[outputName] = outputType === 'boolean' ? false : 0;
         }

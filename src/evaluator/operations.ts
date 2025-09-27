@@ -25,15 +25,16 @@ function resolveValue(
   }
 
   try {
-    return expressionEvaluator.evaluate(value as string, {
+    const result = expressionEvaluator.evaluate(value as string, {
       inputs: context.inputs,
       constants: context.constants,
       calculated: context.calculated,
+      tables: context.tables,
     });
 
     if (typeof result === 'string') {
       throw new Error(
-        `String values are not allowed in operations: '${result}'`
+        `String values are not allowed in operations: '${result}'. This should not happen. Please report a bug.`
       );
     }
 
