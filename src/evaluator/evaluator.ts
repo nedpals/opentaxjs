@@ -58,37 +58,72 @@ export class RuleEvaluator {
   }
 
   private createContext(rule: Rule, inputs: VariableMap): EvaluationContext {
-    // Validate required inputs
+    const tempContext: EvaluationContext = {
+      inputs: inputs,
+      constants: rule.constants || {},
+      calculated: {},
+      tables: {},
+    };
+
+    // Validate inputs, considering conditional requirements
     for (const [inputName, inputDecl] of Object.entries(rule.inputs)) {
-      if (!(inputName in inputs)) {
-        throw new RuleEvaluationError(
-          `Required input '${inputName}' not provided`,
-          rule
-        );
+      let isRequired = true;
+      if (inputDecl.when) {
+        try {
+          isRequired = this.conditionalEvaluator.evaluate(
+            inputDecl.when,
+            tempContext
+          );
+        } catch {
+          // If we can't evaluate the condition, assume it's required for safety
+          isRequired = true;
+        }
       }
 
-      const value = inputs[inputName];
-      const expectedType = inputDecl.type;
-      const actualType = typeof value;
-
-      if (actualType !== expectedType) {
-        throw new RuleEvaluationError(
-          `Input '${inputName}' has wrong type. Expected ${expectedType}, got ${actualType}`,
-          rule
-        );
-      }
-
-      // Validate numeric ranges
-      if (expectedType === 'number' && typeof value === 'number') {
-        if (inputDecl.minimum !== undefined && value < inputDecl.minimum) {
+      // Only validate if the input is required by its condition
+      if (isRequired) {
+        if (!(inputName in inputs)) {
           throw new RuleEvaluationError(
-            `Input '${inputName}' value ${value} is below minimum ${inputDecl.minimum}`,
+            `Required input '${inputName}' not provided`,
             rule
           );
         }
-        if (inputDecl.maximum !== undefined && value > inputDecl.maximum) {
+
+        const value = inputs[inputName];
+        const expectedType = inputDecl.type;
+        const actualType = typeof value;
+
+        if (actualType !== expectedType) {
           throw new RuleEvaluationError(
-            `Input '${inputName}' value ${value} is above maximum ${inputDecl.maximum}`,
+            `Input '${inputName}' has wrong type. Expected ${expectedType}, got ${actualType}`,
+            rule
+          );
+        }
+
+        // Validate numeric ranges
+        if (expectedType === 'number' && typeof value === 'number') {
+          if (inputDecl.minimum !== undefined && value < inputDecl.minimum) {
+            throw new RuleEvaluationError(
+              `Input '${inputName}' value ${value} is below minimum ${inputDecl.minimum}`,
+              rule
+            );
+          }
+          if (inputDecl.maximum !== undefined && value > inputDecl.maximum) {
+            throw new RuleEvaluationError(
+              `Input '${inputName}' value ${value} is above maximum ${inputDecl.maximum}`,
+              rule
+            );
+          }
+        }
+      } else if (inputName in inputs) {
+        // If input is provided but not required, still validate its type
+        const value = inputs[inputName];
+        const expectedType = inputDecl.type;
+        const actualType = typeof value;
+
+        if (actualType !== expectedType) {
+          throw new RuleEvaluationError(
+            `Input '${inputName}' has wrong type. Expected ${expectedType}, got ${actualType}`,
             rule
           );
         }
@@ -198,11 +233,29 @@ export class RuleEvaluator {
     context: EvaluationContext
   ): void {
     for (const validationRule of validationRules) {
-      if (this.conditionalEvaluator.evaluate(validationRule.when, context)) {
-        throw new RuleEvaluationError(
-          `Validation failed: ${validationRule.error}`,
-          undefined
+      try {
+        const conditionResult = this.conditionalEvaluator.evaluate(
+          validationRule.when,
+          context
         );
+        if (conditionResult) {
+          throw new RuleEvaluationError(
+            `Validation failed: ${validationRule.error}`,
+            undefined
+          );
+        }
+      } catch (error) {
+        // Re-throw validation errors - these should propagate
+        if (
+          error instanceof RuleEvaluationError &&
+          error.message.startsWith('Validation failed:')
+        ) {
+          throw error;
+        }
+        // If validation condition cannot be evaluated (e.g., due to missing conditional inputs),
+        // skip this validation rule. This allows validation rules to reference conditional
+        // inputs that may not be provided.
+        continue;
       }
     }
   }

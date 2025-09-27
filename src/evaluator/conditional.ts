@@ -173,24 +173,36 @@ export class ConditionalEvaluator {
       return value;
     }
 
-    try {
-      const variableContext = {
-        inputs: context.inputs,
-        constants: context.constants,
-        calculated: context.calculated,
-      };
+    // For strings, default to literal values unless they start with variable prefixes
+    if (typeof value === 'string') {
+      // Only evaluate as expression if it looks like a variable reference or an excel-like expression
+      if (value.startsWith('$') || value.startsWith('=')) {
+        try {
+          const variableContext = {
+            inputs: context.inputs,
+            constants: context.constants,
+            calculated: context.calculated,
+          };
 
-      const result = this.expressionEvaluator.evaluate(
-        value as string,
-        variableContext
-      );
+          // Remove '=' prefix if present (explicit expression syntax)
+          const expression = value.startsWith('=') ? value.slice(1) : value;
+          const result = this.expressionEvaluator.evaluate(
+            expression,
+            variableContext
+          );
 
-      return result;
-    } catch (error) {
-      if (error instanceof ExpressionEvaluationError) {
-        throw new RuleEvaluationError(error.message);
+          return result;
+        } catch (error) {
+          if (error instanceof ExpressionEvaluationError) {
+            throw new RuleEvaluationError(error.message);
+          }
+          throw error;
+        }
       }
-      throw error;
+
+      return value;
     }
+
+    return value;
   }
 }

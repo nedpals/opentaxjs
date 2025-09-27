@@ -384,7 +384,7 @@ describe('opentax API', () => {
             cases: [
               {
                 when: {
-                  '$filing_status': { eq: "'married_jointly'" }
+                  '$filing_status': { eq: "married_jointly" }
                 },
                 operations: [
                   {
