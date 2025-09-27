@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { validateRule } from '@/validator/validator';
 import { RuleValidationError } from '@/validator/errors';
-import type { Rule } from '@/validator/types';
+import type { RawRule } from '../../src/validator/types';
 
-const validRule: Rule = {
+const validRule: RawRule = {
   $version: '1.0.0',
   name: 'Test Income Tax',
   jurisdiction: 'PH',
