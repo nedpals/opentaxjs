@@ -5,6 +5,7 @@ import type {
   FlowStep,
   Table,
   VariableMap,
+  ValidationRule,
 } from '@/types';
 import { RuleEvaluationError, OperationError } from './errors';
 import { OPERATION_REGISTRY } from './operations';
@@ -25,6 +26,12 @@ export class RuleEvaluator {
   evaluate(rule: Rule, inputs: VariableMap = {}): EvaluationContext {
     try {
       const context = this.createContext(rule, inputs);
+
+      // Run validation before processing the flow
+      if (rule.validate) {
+        this.runValidation(rule.validate, context);
+      }
+
       const finalContext = this.processFlow(rule.flow, context);
 
       for (const outputName of Object.keys(rule.outputs)) {
@@ -90,7 +97,7 @@ export class RuleEvaluator {
 
     // Create tables lookup and resolve bracket constants
     const tablesMap: Record<string, Table> = {};
-    for (const table of rule.tables) {
+    for (const table of rule.tables || []) {
       tablesMap[table.name] = {
         name: table.name,
         brackets: table.brackets.map((bracket) => ({
@@ -99,7 +106,7 @@ export class RuleEvaluator {
             typeof bracket.min === 'string'
               ? (this.expressionEvaluator.evaluate(bracket.min, {
                   inputs,
-                  constants: rule.constants,
+                  constants: rule.constants || {},
                   calculated: {},
                   tables: {}, // Empty during table processing
                 }) as number)
@@ -108,7 +115,7 @@ export class RuleEvaluator {
             typeof bracket.max === 'string'
               ? (this.expressionEvaluator.evaluate(bracket.max, {
                   inputs,
-                  constants: rule.constants,
+                  constants: rule.constants || {},
                   calculated: {},
                   tables: {}, // Empty during table processing
                 }) as number)
@@ -119,7 +126,7 @@ export class RuleEvaluator {
 
     return {
       inputs,
-      constants: rule.constants,
+      constants: rule.constants || {},
       calculated: {},
       tables: tablesMap,
     };
@@ -154,7 +161,10 @@ export class RuleEvaluator {
     // Process conditional cases
     if (step.cases) {
       for (const case_ of step.cases) {
-        if (this.conditionalEvaluator.evaluate(case_.when, currentContext)) {
+        if (
+          !case_.when ||
+          this.conditionalEvaluator.evaluate(case_.when, currentContext)
+        ) {
           // Execute this case's operations
           for (const operation of case_.operations) {
             currentContext = this.executeOperation(operation, currentContext);
@@ -181,5 +191,19 @@ export class RuleEvaluator {
     }
 
     return operationFunction(operation, context, this.expressionEvaluator);
+  }
+
+  private runValidation(
+    validationRules: ValidationRule[],
+    context: EvaluationContext
+  ): void {
+    for (const validationRule of validationRules) {
+      if (this.conditionalEvaluator.evaluate(validationRule.when, context)) {
+        throw new RuleEvaluationError(
+          `Validation failed: ${validationRule.error}`,
+          undefined
+        );
+      }
+    }
   }
 }

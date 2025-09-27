@@ -20,6 +20,7 @@ export interface RawRule {
   tables?: RawTable[];
   inputs?: Record<string, RawVariableSchema>;
   outputs?: Record<string, RawVariableSchema>;
+  validate?: RawValidationRule[];
   filing_schedules?: RawFilingSchedule[];
   flow: RawFlowStep[];
 }
@@ -31,6 +32,7 @@ export interface RawVariableSchema {
   maximum?: number;
   enum?: unknown[];
   pattern?: string;
+  when?: ConditionalExpression;
   items?: {
     type: 'number' | 'boolean';
   };
@@ -61,6 +63,20 @@ export interface RawFormObject {
   form: string;
   attachments?: string[];
 }
+
+export interface RawValidationRule {
+  when: ConditionalExpression;
+  error: string;
+}
+
+export interface RawEffect {
+  type: string;
+  target: string;
+  jurisdiction?: string;
+  description?: string;
+  reference?: string;
+  conditions?: ConditionalExpression;
+  duration?: string;
 }
 
 export interface RawFlowStep {
@@ -79,6 +95,7 @@ export interface RawOperation {
 export interface RawConditionalCase {
   when?: ConditionalExpression;
   operations: RawOperation[];
+  effects?: RawEffect[];
 }
 
 export type ConditionalExpression =

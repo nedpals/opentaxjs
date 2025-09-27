@@ -7,6 +7,7 @@ import { validateTables } from './schemas/tables';
 import { validateOperationsAndFlow } from './schemas/operations';
 import { validateConditionalLogic } from './schemas/conditions';
 import { validateFilingSchedules } from './schemas/schedules';
+import { validateValidationRules } from './schemas/validation';
 
 export class RuleValidator {
   private config: ValidatorConfig;
@@ -54,6 +55,7 @@ export class RuleValidator {
       'operations'
     );
     this.runValidation(() => validateConditionalLogic(typedRule), 'conditions');
+    this.runValidation(() => validateValidationRules(typedRule), 'validation');
     this.runValidation(() => validateFilingSchedules(typedRule), 'schedules');
 
     return this.issues;

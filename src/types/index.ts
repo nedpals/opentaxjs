@@ -47,6 +47,7 @@ export interface VariableDeclaration {
   maximum?: number;
   enum?: string[];
   pattern?: string;
+  when?: Condition;
 }
 
 export interface TableBracket {
@@ -73,6 +74,11 @@ export interface FilingSchedule {
   filing_day: number;
   when?: Condition;
   forms: FormObject[];
+}
+
+export interface ValidationRule {
+  when: Condition;
+  error: string;
 }
 }
 
@@ -128,8 +134,9 @@ export type Condition =
   | LogicalCondition;
 
 export interface Case {
-  when: Condition;
+  when?: Condition;
   operations: Operation[];
+  effects?: Effect[];
 }
 
 export interface FlowStep {
@@ -143,13 +150,16 @@ export interface Rule {
   name: string;
   references?: string[];
   effective_from?: string;
+  effective_to?: string;
   jurisdiction: string;
   taxpayer_type: string;
-  author: string;
-  constants: VariableMap;
-  tables: Table[];
+  category?: string;
+  author?: string;
+  constants?: VariableMap;
+  tables?: Table[];
   inputs: Record<string, VariableDeclaration>;
   outputs: Record<string, VariableDeclaration>;
+  validate?: ValidationRule[];
   filing_schedules?: FilingSchedule[];
   flow: FlowStep[];
 }
