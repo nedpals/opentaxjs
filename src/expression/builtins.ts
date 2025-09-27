@@ -1,4 +1,4 @@
-import type { FunctionDefinition } from './evaluator';
+import type { FunctionDefinition } from '@/symbol';
 
 export const BUILTIN_FUNCTIONS: Record<string, FunctionDefinition> = {
   diff: {

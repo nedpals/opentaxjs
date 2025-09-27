@@ -1,8 +1,4 @@
-export type {
-  ExpressionEvaluatorConfig,
-  FunctionDefinition,
-  VariableContext,
-} from './evaluator';
+export type { ExpressionEvaluatorConfig, VariableContext } from './evaluator';
 
 export { ExpressionEvaluationError, ExpressionEvaluator } from './evaluator';
 
