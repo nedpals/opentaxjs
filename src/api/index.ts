@@ -63,8 +63,9 @@ function generateFilingSchedules(
 ): TaxLiability[] {
   const liabilities: TaxLiability[] = [];
   // Built-ins are already included in the eval context
-  const expressionEvaluator = new ExpressionEvaluator();
-  const conditionalEvaluator = new ConditionalEvaluator(expressionEvaluator);
+  const conditionalEvaluator = new ConditionalEvaluator(
+    new ExpressionEvaluator()
+  );
 
   for (const schedule of rule.filing_schedules || []) {
     // Check if schedule applies (evaluate when condition if present)
@@ -78,13 +79,15 @@ function generateFilingSchedules(
       }
     }
 
+    // Generate liabilities based on schedule frequency
+    const totalLiability = (context.calculated.liability as number) || 0;
+
     if (schedule.frequency === 'quarterly') {
-      // Only generate liabilities for affected quarters
-      for (const quarter of periodInfo.affected_quarters) {
+      // Generate liability for each affected quarter
+      periodInfo.affected_quarters.forEach((quarter) => {
         const prorationFactor =
           periodInfo.proration_factors[`Q${quarter}`] || 0;
-        const quarterlyAmount =
-          ((context.calculated.liability as number) / 4 || 0) * prorationFactor;
+        const quarterlyAmount = (totalLiability / 4) * prorationFactor;
         const targetDate = periodInfo.filing_dates[`Q${quarter}`] || new Date();
 
         liabilities.push({
@@ -94,16 +97,15 @@ function generateFilingSchedules(
           amount: quarterlyAmount,
           target_filing_date: targetDate,
         });
-      }
+      });
     } else if (schedule.frequency === 'annually') {
-      const annualAmount = (context.calculated.liability as number) || 0;
       const targetDate = periodInfo.filing_dates.annual || new Date();
 
       liabilities.push({
         name: schedule.name,
         type: 'annually',
         iter: 1,
-        amount: annualAmount,
+        amount: totalLiability,
         target_filing_date: targetDate,
       });
     }
