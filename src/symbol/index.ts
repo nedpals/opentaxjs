@@ -3,6 +3,7 @@ export type {
   FunctionDefinition,
   ParameterSchema,
   SymbolInfo,
+  VariableContext,
 } from './registry';
 
-export { SymbolRegistry } from './registry';
+export { SymbolRegistry, VariableResolutionError } from './registry';
