@@ -77,37 +77,44 @@ export function validateFilingSchedules(rule: RawRule): ValidationIssue[] {
         message: 'Filing schedule must specify forms',
         path: `${basePath}/forms`,
       });
+    } else if (!Array.isArray(schedule.forms)) {
+      issues.push({
+        severity: 'error',
+        message: 'Forms must be an array',
+        path: `${basePath}/forms`,
+      });
     } else {
-      if (
-        typeof schedule.forms.primary !== 'string' ||
-        schedule.forms.primary.trim() === ''
-      ) {
-        issues.push({
-          severity: 'error',
-          message: 'Filing schedule must have a primary form',
-          path: `${basePath}/forms/primary`,
-        });
-      }
+      schedule.forms.forEach((form, formIndex) => {
+        const formPath = `${basePath}/forms/${formIndex}`;
 
-      if (schedule.forms.attachments !== undefined) {
-        if (!Array.isArray(schedule.forms.attachments)) {
+        if (typeof form.form !== 'string' || form.form.trim() === '') {
           issues.push({
             severity: 'error',
-            message: 'Attachments must be an array',
-            path: `${basePath}/forms/attachments`,
-          });
-        } else {
-          schedule.forms.attachments.forEach((attachment, attachmentIndex) => {
-            if (typeof attachment !== 'string') {
-              issues.push({
-                severity: 'error',
-                message: `Attachment at index ${attachmentIndex} must be a string`,
-                path: `${basePath}/forms/attachments/${attachmentIndex}`,
-              });
-            }
+            message: 'Form must have a non-empty form field',
+            path: `${formPath}/form`,
           });
         }
-      }
+
+        if (form.attachments !== undefined) {
+          if (!Array.isArray(form.attachments)) {
+            issues.push({
+              severity: 'error',
+              message: 'Attachments must be an array',
+              path: `${formPath}/attachments`,
+            });
+          } else {
+            form.attachments.forEach((attachment, attachmentIndex) => {
+              if (typeof attachment !== 'string') {
+                issues.push({
+                  severity: 'error',
+                  message: `Attachment at index ${attachmentIndex} must be a string`,
+                  path: `${formPath}/attachments/${attachmentIndex}`,
+                });
+              }
+            });
+          }
+        }
+      });
     }
 
     if (schedule.filing_day === null) {

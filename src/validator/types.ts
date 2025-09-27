@@ -53,10 +53,14 @@ export interface RawFilingSchedule {
   frequency: FilingFrequency;
   filing_day: number | string;
   when?: ConditionalExpression;
-  forms: {
-    primary: string;
-    attachments?: string[];
-  };
+  forms: RawFormObject[];
+}
+
+export interface RawFormObject {
+  when?: ConditionalExpression;
+  form: string;
+  attachments?: string[];
+}
 }
 
 export interface RawFlowStep {

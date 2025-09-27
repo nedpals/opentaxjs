@@ -61,8 +61,9 @@ export interface Table {
   brackets: TableBracket[];
 }
 
-export interface Form {
-  primary: string;
+export interface FormObject {
+  when?: Condition;
+  form: string;
   attachments?: string[];
 }
 
@@ -71,7 +72,8 @@ export interface FilingSchedule {
   frequency: FilingFrequency;
   filing_day: number;
   when?: Condition;
-  forms: Form;
+  forms: FormObject[];
+}
 }
 
 export interface BaseOperation {
@@ -148,7 +150,7 @@ export interface Rule {
   tables: Table[];
   inputs: Record<string, VariableDeclaration>;
   outputs: Record<string, VariableDeclaration>;
-  filing_schedules: FilingSchedule[];
+  filing_schedules?: FilingSchedule[];
   flow: FlowStep[];
 }
 

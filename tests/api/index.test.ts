@@ -54,17 +54,17 @@ describe('opentax API', () => {
         name: 'Quarterly Income Tax',
         frequency: 'quarterly',
         filing_day: 15,
-        forms: {
-          primary: '1701Q'
-        }
+        forms: [
+          { form: '1701Q' }
+        ]
       },
       {
         name: 'Annual Income Tax',
         frequency: 'annually',
         filing_day: 15,
-        forms: {
-          primary: '1701'
-        }
+        forms: [
+          { form: '1701' }
+        ]
       }
     ],
     flow: [
@@ -236,17 +236,17 @@ describe('opentax API', () => {
           when: {
             liability: { gt: 50000 }
           },
-          forms: {
-            primary: '1701Q'
-          }
+          forms: [
+            { form: '1701Q' }
+          ]
         },
         {
           name: 'Regular Annual',
           frequency: 'annually',
           filing_day: 15,
-          forms: {
-            primary: '1701'
-          }
+          forms: [
+            { form: '1701' }
+          ]
         }
       ]
     };

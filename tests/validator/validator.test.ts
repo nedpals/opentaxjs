@@ -259,9 +259,9 @@ describe('RuleValidator', () => {
             name: 'Invalid Schedule',
             frequency: 'invalid_frequency',
             filing_day: 50,
-            forms: {
-              primary: 'Form123',
-            },
+            forms: [
+              { form: 'Form123' }
+            ],
           },
         ],
       };
