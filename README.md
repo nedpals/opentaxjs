@@ -40,21 +40,29 @@ npm install opentaxjs
 ```typescript
 import opentax from 'opentaxjs';
 
-// Import a tax rule or fetch from a remote source
-import incomeTaxRule from './rules/income_tax.json';
+const resp = await fetch(
+  'https://cdn.jsdelivr.net/gh/nedpals/opentaxjs/rules/PH/income_tax.json'
+);
 
-// Initialize the tax calculator with a rule
+const incomeTaxRule = await resp.json();
 const calculator = opentax({ rule: incomeTaxRule });
-
-// Calculate tax liability
 const result = calculator.calculate({
-  gross_income: 500000,
-  deductions: 100000,
-  filing_status: 'single'
+  income_type: 'COMPENSATION',
+  gross_compensation_income: 300_000,
+  mandatory_contributions: 15_000,
+  thirteenth_month_and_other_benefits: 25_000
 });
 
-console.log(result.liability); // 75000
-console.log(result.liabilities); // Filing schedule with amounts and dates
+console.log(result.liabilities);
+// [
+//   {
+//     name: 'Annual Income Tax Filing',
+//     type: 'annually',
+//     iter: 1,
+//     amount: 1500,
+//     target_filing_date: 2026-04-14T16:00:00.000Z
+//   }
+// ]
 ```
 
 ## API Reference
