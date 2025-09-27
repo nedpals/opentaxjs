@@ -65,9 +65,11 @@ export class RuleEvaluator {
       tables: {},
     };
 
-    // Validate inputs, considering conditional requirements
+    // Validate inputs, considering conditional requirements and default values
     for (const [inputName, inputDecl] of Object.entries(rule.inputs)) {
       let isRequired = true;
+      const hasDefault = inputDecl.default !== undefined;
+
       if (inputDecl.when) {
         try {
           isRequired = this.conditionalEvaluator.evaluate(
@@ -80,16 +82,24 @@ export class RuleEvaluator {
         }
       }
 
-      // Only validate if the input is required by its condition
-      if (isRequired) {
+      // Apply default values for missing inputs when they are required or conditional
+      if (!(inputName in inputs) && hasDefault && isRequired) {
+        tempContext.inputs[inputName] = inputDecl.default!;
+      }
+
+      // Only validate if the input is required by its condition AND has no default value
+      if (isRequired && !hasDefault) {
         if (!(inputName in inputs)) {
           throw new RuleEvaluationError(
             `Required input '${inputName}' not provided`,
             rule
           );
         }
+      }
 
-        const value = inputs[inputName];
+      // Validate provided inputs (either explicitly provided or from defaults)
+      if (inputName in tempContext.inputs) {
+        const value = tempContext.inputs[inputName];
         const expectedType = inputDecl.type;
         const actualType = typeof value;
 
@@ -114,18 +124,6 @@ export class RuleEvaluator {
               rule
             );
           }
-        }
-      } else if (inputName in inputs) {
-        // If input is provided but not required, still validate its type
-        const value = inputs[inputName];
-        const expectedType = inputDecl.type;
-        const actualType = typeof value;
-
-        if (actualType !== expectedType) {
-          throw new RuleEvaluationError(
-            `Input '${inputName}' has wrong type. Expected ${expectedType}, got ${actualType}`,
-            rule
-          );
         }
       }
     }

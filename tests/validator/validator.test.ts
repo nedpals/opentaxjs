@@ -502,6 +502,124 @@ describe('RuleValidator', () => {
       expect(constantError?.suggestion).toContain('$$max_income');
       expect(constantError?.suggestion).toContain('Constants must be referenced with $$ prefix');
     });
+
+    it('should honor default values for input variables', () => {
+      const ruleWithDefaults = {
+        ...validRule,
+        inputs: {
+          income_type: {
+            type: 'string',
+            description: 'Type of income',
+          },
+          gross_income: {
+            type: 'number',
+            description: 'Gross income amount',
+          },
+          deductions: {
+            type: 'number',
+            description: 'Deductible expenses',
+            default: 0, // Should be optional due to default
+          },
+          mandatory_field: {
+            type: 'number',
+            description: 'Required field with no default',
+          },
+        },
+        flow: [
+          {
+            name: 'Simple calculation',
+            operations: [
+              { type: 'set', target: 'result', value: '$gross_income' },
+              { type: 'subtract', target: 'result', value: '$deductions' },
+            ],
+          },
+        ],
+      };
+
+      const issues = validateRule(ruleWithDefaults);
+      const errors = issues.filter((i) => i.severity === 'error');
+
+      // Should validate successfully with defaults
+      expect(errors).toHaveLength(0);
+    });
+
+    it('should handle conditional input variables with default values', () => {
+      const conditionalWithDefaultsRule = {
+        ...validRule,
+        inputs: {
+          income_type: {
+            type: 'string',
+            description: 'Type of income',
+            enum: ['COMPENSATION', 'BUSINESS', 'MIXED'],
+          },
+          gross_income: {
+            type: 'number',
+            description: 'Gross income amount',
+          },
+          // Conditional input with default - should be optional when condition is met
+          business_expenses: {
+            type: 'number',
+            description: 'Business expenses (for business income only)',
+            default: 0,
+            when: {
+              $income_type: { eq: 'BUSINESS' },
+            },
+          },
+          // Conditional input without default - should be required when condition is met
+          business_receipts: {
+            type: 'number',
+            description: 'Business receipts (for business income only)',
+            when: {
+              $income_type: { eq: 'BUSINESS' },
+            },
+          },
+          // Optional field with default regardless of conditions
+          miscellaneous_deductions: {
+            type: 'number',
+            description: 'Other deductions',
+            default: 0,
+          },
+        },
+        flow: [
+          {
+            name: 'Calculate tax',
+            cases: [
+              {
+                when: { $income_type: { eq: 'COMPENSATION' } },
+                operations: [
+                  { type: 'set', target: 'result', value: '$gross_income' },
+                  { type: 'subtract', target: 'result', value: '$miscellaneous_deductions' },
+                ],
+              },
+              {
+                when: { $income_type: { eq: 'BUSINESS' } },
+                operations: [
+                  { type: 'set', target: 'result', value: '$business_receipts' },
+                  { type: 'subtract', target: 'result', value: '$business_expenses' },
+                  { type: 'subtract', target: 'result', value: '$miscellaneous_deductions' },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      // Test validation passes - rule with conditional inputs and defaults should be valid
+      const issues = validateRule(conditionalWithDefaultsRule);
+      const errors = issues.filter((i) => i.severity === 'error');
+      expect(errors).toHaveLength(0);
+
+      // Verify the structure contains the expected elements
+      expect(conditionalWithDefaultsRule.inputs.business_expenses.default).toBe(0);
+      expect(conditionalWithDefaultsRule.inputs.business_expenses.when).toEqual({
+        $income_type: { eq: 'BUSINESS' }
+      });
+      expect(conditionalWithDefaultsRule.inputs.business_receipts.when).toEqual({
+        $income_type: { eq: 'BUSINESS' }
+      });
+      expect((conditionalWithDefaultsRule.inputs.business_receipts as any).default).toBeUndefined();
+      expect(conditionalWithDefaultsRule.inputs.miscellaneous_deductions.default).toBe(0);
+    });
   });
 
   describe('RuleValidationError', () => {

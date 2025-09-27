@@ -55,6 +55,7 @@ export interface VariableDeclaration {
   enum?: string[];
   pattern?: string;
   when?: Condition;
+  default?: VariableValue;
 }
 
 export interface TableBracket {
