@@ -1,6 +1,7 @@
 export type {
   BuiltinSymbols,
   FunctionDefinition,
+  FunctionContext,
   ParameterSchema,
   SymbolInfo,
   VariableContext,

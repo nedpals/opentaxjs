@@ -275,18 +275,10 @@ export class ExpressionEvaluator {
       );
     }
 
-    const evaluatedParams: (number | boolean | string)[] = [];
-    for (const param of parameters) {
-      try {
-        evaluatedParams.push(this.evaluateExpression(param, context));
-      } catch (error) {
-        throw new ExpressionEvaluationError(
-          `Failed to evaluate parameter in function '${name}': ${error instanceof Error ? error.message : String(error)}`,
-          expression,
-          context
-        );
-      }
-    }
+    const evaluatedParams: Record<
+      string,
+      number | boolean | string | (number | boolean | string)[]
+    > = {};
 
     const func = this.config.builtinFunctions[name];
     if (!func) {
@@ -295,6 +287,63 @@ export class ExpressionEvaluator {
         expression,
         context
       );
+    }
+
+    // Handle variadic parameters (array type)
+    const schema = func.parameters;
+    const isVariadic =
+      schema.length === 1 &&
+      schema[0].name?.startsWith('...') &&
+      schema[0].type === 'array' &&
+      !schema[0].required;
+
+    if (isVariadic) {
+      // For variadic functions, collect all parameters into an array
+      const paramName = schema[0].name || 'args';
+      const paramValues: (number | boolean | string)[] = [];
+
+      for (const param of parameters) {
+        try {
+          paramValues.push(this.evaluateExpression(param, context));
+        } catch (error) {
+          throw new ExpressionEvaluationError(
+            `Failed to evaluate parameter in function '${name}': ${error instanceof Error ? error.message : String(error)}`,
+            expression,
+            context
+          );
+        }
+      }
+      // Strip the '...' prefix when storing in args object for cleaner callback access
+      const cleanParamName = paramName.startsWith('...')
+        ? paramName.slice(3)
+        : paramName;
+      evaluatedParams[cleanParamName] = paramValues;
+    } else {
+      // For regular functions, map parameters by name
+      for (let i = 0; i < parameters.length; i++) {
+        const paramSchema = schema[i];
+        if (!paramSchema) {
+          throw new ExpressionEvaluationError(
+            `Function '${name}' received too many parameters`,
+            expression,
+            context
+          );
+        }
+
+        const paramName = paramSchema.name || `param${i}`;
+        try {
+          evaluatedParams[paramName] = this.evaluateExpression(
+            parameters[i],
+            context
+          );
+        } catch (error) {
+          throw new ExpressionEvaluationError(
+            `Failed to evaluate parameter '${paramName}' in function '${name}': ${error instanceof Error ? error.message : String(error)}`,
+            expression,
+            context
+          );
+        }
+      }
     }
 
     if (typeof func === 'object' && 'parameters' in func) {
@@ -307,8 +356,14 @@ export class ExpressionEvaluator {
       );
     }
 
-    const result = func.callback(...(evaluatedParams as unknown[]));
-    if (typeof result !== 'number' && typeof result !== 'boolean') {
+    // Always pass context to the new callback signature
+    const result = func.callback(evaluatedParams, {});
+
+    if (
+      typeof result !== 'number' &&
+      typeof result !== 'boolean' &&
+      typeof result !== 'string'
+    ) {
       throw new ExpressionEvaluationError(
         `Function '${name}' must return a number, boolean, or string, got ${typeof result}`,
         expression,
@@ -322,7 +377,10 @@ export class ExpressionEvaluator {
   private validateFunctionParameters(
     funcName: string,
     func: FunctionDefinition,
-    params: (number | boolean | string)[],
+    params: Record<
+      string,
+      number | boolean | string | (number | boolean | string)[]
+    >,
     expression: CallExpression,
     context: VariableContext
   ): void {
@@ -333,8 +391,24 @@ export class ExpressionEvaluator {
       schema.length === 1 && schema[0].type === 'array' && !schema[0].required;
 
     if (isVariadic) {
-      // For variadic functions, all parameters must match the array items type
-      const expectedType = schema[0].items?.type;
+      // For variadic functions, validate the array parameter
+      const paramSchema = schema[0];
+      const paramName = paramSchema.name || 'args';
+      // Use the stripped parameter name to access the value
+      const cleanParamName = paramName.startsWith('...')
+        ? paramName.slice(3)
+        : paramName;
+      const paramValue = params[cleanParamName];
+
+      if (!Array.isArray(paramValue)) {
+        throw new ExpressionEvaluationError(
+          `Function '${name}' parameter '${paramName}' must be an array`,
+          expression,
+          context
+        );
+      }
+
+      const expectedType = paramSchema.items?.type;
       if (!expectedType) {
         throw new ExpressionEvaluationError(
           `Function '${name}' array parameter missing items type definition`,
@@ -343,57 +417,62 @@ export class ExpressionEvaluator {
         );
       }
 
-      for (let i = 0; i < params.length; i++) {
-        const param = params[i];
-        const actualType = typeof param;
+      for (let i = 0; i < paramValue.length; i++) {
+        const item = paramValue[i];
+        const actualType = typeof item;
         if (actualType !== expectedType) {
           const article =
-            expectedType === 'number'
-              ? 'a '
-              : expectedType === 'string'
-                ? 'a '
-                : '';
+            expectedType === 'number' || expectedType === 'string' ? 'a ' : '';
           throw new ExpressionEvaluationError(
-            `Function '${name}' parameter ${i + 1} must be ${article}${expectedType}, got ${actualType}`,
+            `Function '${name}' parameter '${paramName}[${i}]' must be ${article}${expectedType}, got ${actualType}`,
             expression,
             context
           );
         }
       }
     } else {
-      const requiredParamCount = schema.filter((p) => p.required).length;
-
-      if (params.length < requiredParamCount) {
-        throw new ExpressionEvaluationError(
-          `Function '${name}' requires at least ${requiredParamCount} parameters, got ${params.length}`,
-          expression,
-          context
-        );
+      // Validate required parameters are present
+      const requiredParams = schema.filter((p) => p.required);
+      for (const paramSchema of requiredParams) {
+        const paramName = paramSchema.name || 'unknown';
+        if (!(paramName in params)) {
+          throw new ExpressionEvaluationError(
+            `Function '${name}' missing required parameter '${paramName}'`,
+            expression,
+            context
+          );
+        }
       }
 
-      if (params.length > schema.length) {
-        throw new ExpressionEvaluationError(
-          `Function '${name}' accepts at most ${schema.length} parameters, got ${params.length}`,
-          expression,
-          context
-        );
-      }
+      // Validate parameter types
+      for (const paramSchema of schema) {
+        const paramName = paramSchema.name || 'unknown';
+        if (paramName in params) {
+          const paramValue = params[paramName];
+          const actualType = typeof paramValue;
 
-      // Validate each parameter type
-      for (let i = 0; i < params.length; i++) {
-        const param = params[i];
-        const paramSchema = schema[i];
-        const actualType = typeof param;
-
-        if (actualType !== paramSchema.type) {
-          const article =
-            paramSchema.type === 'number'
-              ? 'a '
-              : paramSchema.type === 'string'
+          if (actualType !== paramSchema.type) {
+            const article =
+              paramSchema.type === 'number' || paramSchema.type === 'string'
                 ? 'a '
                 : '';
+            throw new ExpressionEvaluationError(
+              `Function '${name}' parameter '${paramName}' must be ${article}${paramSchema.type}, got ${actualType}`,
+              expression,
+              context
+            );
+          }
+        }
+      }
+
+      // Check for unexpected parameters
+      const expectedParamNames = new Set(
+        schema.map((p) => p.name).filter(Boolean)
+      );
+      for (const paramName of Object.keys(params)) {
+        if (!expectedParamNames.has(paramName)) {
           throw new ExpressionEvaluationError(
-            `Function '${name}' parameter ${i + 1} must be ${article}${paramSchema.type}, got ${actualType}`,
+            `Function '${name}' received unexpected parameter '${paramName}'`,
             expression,
             context
           );

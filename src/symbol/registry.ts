@@ -15,9 +15,14 @@ export interface BuiltinSymbols {
   variables?: Record<string, number | boolean>;
 }
 
+export interface FunctionContext {}
+
 export interface FunctionDefinition {
   parameters: ParameterSchema[];
-  callback: (...args: unknown[]) => unknown;
+  callback: (
+    args: Record<string, unknown>,
+    context: FunctionContext
+  ) => unknown;
 }
 
 export interface ParameterSchema {

@@ -1,13 +1,18 @@
-import type { FunctionDefinition } from '@/symbol';
+import type { FunctionDefinition, FunctionContext } from '@/symbol';
+import type { Table } from '@/types';
 
 export const BUILTIN_FUNCTIONS: Record<string, FunctionDefinition> = {
   diff: {
     parameters: [
-      { type: 'number', required: true },
-      { type: 'number', required: true },
+      { name: 'a', type: 'number', required: true },
+      { name: 'b', type: 'number', required: true },
     ],
-    callback: (a: unknown, b: unknown): unknown => {
-      return Math.abs((a as number) - (b as number));
+    callback: (
+      args: Record<string, unknown>,
+      context: FunctionContext
+    ): unknown => {
+      const { a, b } = args as { a: number; b: number };
+      return Math.abs(a - b);
     },
   },
 
@@ -20,8 +25,12 @@ export const BUILTIN_FUNCTIONS: Record<string, FunctionDefinition> = {
         required: false,
       },
     ],
-    callback: (...args: unknown[]): unknown => {
-      return (args as number[]).reduce((acc: number, val) => acc + val, 0);
+    callback: (
+      args: Record<string, unknown>,
+      context: FunctionContext
+    ): unknown => {
+      const numbers = args.numbers as number[];
+      return numbers.reduce((acc: number, val) => acc + val, 0);
     },
   },
 
@@ -34,9 +43,13 @@ export const BUILTIN_FUNCTIONS: Record<string, FunctionDefinition> = {
         required: false,
       },
     ],
-    callback: (...args: unknown[]): unknown => {
-      if (args.length === 0) return 0;
-      return Math.max(...(args as number[]));
+    callback: (
+      args: Record<string, unknown>,
+      context: FunctionContext
+    ): unknown => {
+      const numbers = args.numbers as number[];
+      if (numbers.length === 0) return 0;
+      return Math.max(...numbers);
     },
   },
 
@@ -49,9 +62,13 @@ export const BUILTIN_FUNCTIONS: Record<string, FunctionDefinition> = {
         required: false,
       },
     ],
-    callback: (...args: unknown[]): unknown => {
-      if (args.length === 0) return 0;
-      return Math.min(...(args as number[]));
+    callback: (
+      args: Record<string, unknown>,
+      context: FunctionContext
+    ): unknown => {
+      const numbers = args.numbers as number[];
+      if (numbers.length === 0) return 0;
+      return Math.min(...numbers);
     },
   },
 
