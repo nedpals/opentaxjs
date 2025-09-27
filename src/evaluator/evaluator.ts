@@ -1,4 +1,10 @@
-import type { Rule, EvaluationContext, Operation, FlowStep, Table } from '@/types';
+import type {
+  Rule,
+  EvaluationContext,
+  Operation,
+  FlowStep,
+  Table,
+} from '@/types';
 import { RuleEvaluationError, OperationError } from './errors';
 import { OPERATION_REGISTRY } from './operations';
 import { ConditionalEvaluator } from './conditional';
