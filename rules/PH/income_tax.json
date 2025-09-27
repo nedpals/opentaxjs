@@ -1,0 +1,752 @@
+{
+  "$version": "0.1.0",
+  "name": "Philippine Individual Income Tax",
+  "references": [
+    "National Internal Revenue Code (NIRC) of 1997, as amended",
+    "Republic Act No. 10963 (TRAIN Law)",
+    "https://www.bir.gov.ph/income-tax"
+  ],
+  "effective_from": "2023-01-01",
+  "jurisdiction": "PH",
+  "taxpayer_type": "INDIVIDUAL",
+  "category": "INCOME_TAX",
+  "author": "Ned Palacios",
+  "constants": {
+    "tax_exempt_threshold": 250000,
+    "non_taxable_benefits_ceiling": 90000,
+    "optional_flat_tax_rate": 0.08,
+    "vat_threshold": 3000000,
+    "osd_rate": 0.40
+  },
+  "tables": [
+    {
+      "name": "individual_tax_brackets_2023",
+      "brackets": [
+        {
+          "min": 0,
+          "max": 250000,
+          "rate": 0,
+          "base_tax": 0
+        },
+        {
+          "min": 250000,
+          "max": 400000,
+          "rate": 0.15,
+          "base_tax": 0
+        },
+        {
+          "min": 400000,
+          "max": 800000,
+          "rate": 0.20,
+          "base_tax": 22500
+        },
+        {
+          "min": 800000,
+          "max": 2000000,
+          "rate": 0.25,
+          "base_tax": 102500
+        },
+        {
+          "min": 2000000,
+          "max": 8000000,
+          "rate": 0.30,
+          "base_tax": 402500
+        },
+        {
+          "min": 8000000,
+          "max": "$$MAX_TAXABLE_INCOME",
+          "rate": 0.35,
+          "base_tax": 2202500
+        }
+      ]
+    }
+  ],
+  "inputs": {
+    "income_type": {
+      "type": "string",
+      "description": "The type of income earned by the individual.",
+      "enum": [
+        "COMPENSATION",
+        "BUSINESS",
+        "MIXED"
+      ]
+    },
+    "gross_compensation_income": {
+      "type": "number",
+      "description": "Total annual salary, wages, and other compensation income.",
+      "default": 0,
+      "when": {
+        "or": [
+          {
+            "income_type": {
+              "eq": "COMPENSATION"
+            }
+          },
+          {
+            "income_type": {
+              "eq": "MIXED"
+            }
+          }
+        ]
+      }
+    },
+    "mandatory_contributions": {
+      "type": "number",
+      "description": "Total annual contributions to SSS, PhilHealth, and Pag-IBIG.",
+      "default": 0,
+      "when": {
+        "or": [
+          {
+            "income_type": {
+              "eq": "COMPENSATION"
+            }
+          },
+          {
+            "income_type": {
+              "eq": "MIXED"
+            }
+          }
+        ]
+      }
+    },
+    "thirteenth_month_and_other_benefits": {
+      "type": "number",
+      "description": "Total 13th-month pay and other benefits received.",
+      "default": 0,
+      "when": {
+        "or": [
+          {
+            "income_type": {
+              "eq": "COMPENSATION"
+            }
+          },
+          {
+            "income_type": {
+              "eq": "MIXED"
+            }
+          }
+        ]
+      }
+    },
+    "gross_business_receipts": {
+      "type": "number",
+      "description": "Total gross sales or receipts from business or profession.",
+      "default": 0,
+      "when": {
+        "or": [
+          {
+            "income_type": {
+              "eq": "BUSINESS"
+            }
+          },
+          {
+            "income_type": {
+              "eq": "MIXED"
+            }
+          }
+        ]
+      }
+    },
+    "tax_rate_option": {
+      "type": "string",
+      "description": "Tax regime for business income.",
+      "enum": [
+        "GRADUATED",
+        "FLAT_8_PERCENT"
+      ],
+      "default": "GRADUATED",
+      "when": {
+        "or": [
+          {
+            "income_type": {
+              "eq": "BUSINESS"
+            }
+          },
+          {
+            "income_type": {
+              "eq": "MIXED"
+            }
+          }
+        ]
+      }
+    },
+    "deduction_method": {
+      "type": "string",
+      "description": "Deduction method for business income under the graduated tax regime.",
+      "enum": [
+        "OSD",
+        "ITEMIZED"
+      ],
+      "default": "OSD",
+      "when": {
+        "and": [
+          {
+            "or": [
+              {
+                "income_type": {
+                  "eq": "BUSINESS"
+                }
+              },
+              {
+                "income_type": {
+                  "eq": "MIXED"
+                }
+              }
+            ]
+          },
+          {
+            "tax_rate_option": {
+              "eq": "GRADUATED"
+            }
+          }
+        ]
+      }
+    },
+    "itemized_deductions": {
+      "type": "number",
+      "description": "Total substantiated ordinary and necessary business expenses.",
+      "default": 0,
+      "when": {
+        "and": [
+          {
+            "or": [
+              {
+                "income_type": {
+                  "eq": "BUSINESS"
+                }
+              },
+              {
+                "income_type": {
+                  "eq": "MIXED"
+                }
+              }
+            ]
+          },
+          {
+            "tax_rate_option": {
+              "eq": "GRADUATED"
+            }
+          },
+          {
+            "deduction_method": {
+              "eq": "ITEMIZED"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "outputs": {
+    "taxable_compensation_income": {
+      "type": "number",
+      "description": "Net taxable income from compensation."
+    },
+    "taxable_business_income": {
+      "type": "number",
+      "description": "Net taxable income from business or profession."
+    },
+    "total_taxable_income": {
+      "type": "number",
+      "description": "Total taxable income subject to graduated rates."
+    },
+    "osd_deduction_amount": {
+      "type": "number",
+      "description": "The calculated Optional Standard Deduction amount."
+    }
+  },
+  "validate": [
+    {
+      "when": {
+        "and": [
+          {
+            "tax_rate_option": {
+              "eq": "FLAT_8_PERCENT"
+            }
+          },
+          {
+            "$gross_business_receipts": {
+              "gt": "$$vat_threshold"
+            }
+          }
+        ]
+      },
+      "error": "The 8% flat tax rate option is not available for taxpayers whose gross sales/receipts exceed the PHP 3,000,000 VAT threshold."
+    }
+  ],
+  "filing_schedules": [
+    {
+      "name": "Quarterly Income Tax Filing",
+      "frequency": "quarterly",
+      "filing_day": 15,
+      "when": {
+        "or": [
+          {
+            "income_type": {
+              "eq": "BUSINESS"
+            }
+          },
+          {
+            "income_type": {
+              "eq": "MIXED"
+            }
+          }
+        ]
+      },
+      "forms": [
+        {
+          "form": "1701Q",
+          "attachments": [
+            "Summary Alphalist of Withholding Taxes (SAWT)",
+            "Statement of Management Responsibility (SMR)"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Annual Income Tax Filing",
+      "frequency": "annually",
+      "filing_day": 15,
+      "forms": [
+        {
+          "when": {
+            "income_type": {
+              "eq": "COMPENSATION"
+            }
+          },
+          "form": "1700",
+          "attachments": [
+            "BIR Form 2316 (Certificate of Compensation Payment/Tax Withheld)"
+          ]
+        },
+        {
+          "when": {
+            "and": [
+              {
+                "income_type": {
+                  "eq": "BUSINESS"
+                }
+              },
+              {
+                "or": [
+                  {
+                    "tax_rate_option": {
+                      "eq": "FLAT_8_PERCENT"
+                    }
+                  },
+                  {
+                    "deduction_method": {
+                      "eq": "OSD"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "form": "1701A",
+          "attachments": [
+            "Account Information Form (AIF) or Financial Statements"
+          ]
+        },
+        {
+          "form": "1701",
+          "attachments": [
+            "BIR Form 2316 (if applicable)",
+            "Account Information Form (AIF) or Audited Financial Statements"
+          ]
+        }
+      ]
+    }
+  ],
+  "flow": [
+    {
+      "name": "Determine Taxable Income",
+      "cases": [
+        {
+          "when": {
+            "income_type": {
+              "eq": "COMPENSATION"
+            }
+          },
+          "operations": [
+            {
+              "type": "set",
+              "target": "non_taxable_benefits_applied",
+              "value": "min($thirteenth_month_and_other_benefits, $$non_taxable_benefits_ceiling)"
+            },
+            {
+              "type": "set",
+              "target": "taxable_compensation_income",
+              "value": "$gross_compensation_income"
+            },
+            {
+              "type": "subtract",
+              "target": "taxable_compensation_income",
+              "value": "$mandatory_contributions"
+            },
+            {
+              "type": "subtract",
+              "target": "taxable_compensation_income",
+              "value": "non_taxable_benefits_applied"
+            }
+          ]
+        },
+        {
+          "when": {
+            "and": [
+              {
+                "income_type": {
+                  "eq": "BUSINESS"
+                }
+              },
+              {
+                "tax_rate_option": {
+                  "eq": "GRADUATED"
+                }
+              },
+              {
+                "deduction_method": {
+                  "eq": "OSD"
+                }
+              }
+            ]
+          },
+          "operations": [
+            {
+              "type": "set",
+              "target": "osd_deduction_amount",
+              "value": "$gross_business_receipts"
+            },
+            {
+              "type": "multiply",
+              "target": "osd_deduction_amount",
+              "value": "$$osd_rate"
+            },
+            {
+              "type": "set",
+              "target": "taxable_business_income",
+              "value": "$gross_business_receipts"
+            },
+            {
+              "type": "subtract",
+              "target": "taxable_business_income",
+              "value": "osd_deduction_amount"
+            }
+          ]
+        },
+        {
+          "when": {
+            "and": [
+              {
+                "income_type": {
+                  "eq": "BUSINESS"
+                }
+              },
+              {
+                "tax_rate_option": {
+                  "eq": "GRADUATED"
+                }
+              },
+              {
+                "deduction_method": {
+                  "eq": "ITEMIZED"
+                }
+              }
+            ]
+          },
+          "operations": [
+            {
+              "type": "set",
+              "target": "taxable_business_income",
+              "value": "$gross_business_receipts"
+            },
+            {
+              "type": "subtract",
+              "target": "taxable_business_income",
+              "value": "$itemized_deductions"
+            }
+          ]
+        },
+        {
+          "when": {
+            "and": [
+              {
+                "income_type": {
+                  "eq": "MIXED"
+                }
+              },
+              {
+                "tax_rate_option": {
+                  "eq": "GRADUATED"
+                }
+              },
+              {
+                "deduction_method": {
+                  "eq": "OSD"
+                }
+              }
+            ]
+          },
+          "operations": [
+            {
+              "type": "set",
+              "target": "non_taxable_benefits_applied",
+              "value": "min($thirteenth_month_and_other_benefits, $$non_taxable_benefits_ceiling)"
+            },
+            {
+              "type": "set",
+              "target": "taxable_compensation_income",
+              "value": "$gross_compensation_income"
+            },
+            {
+              "type": "subtract",
+              "target": "taxable_compensation_income",
+              "value": "$mandatory_contributions"
+            },
+            {
+              "type": "subtract",
+              "target": "taxable_compensation_income",
+              "value": "non_taxable_benefits_applied"
+            },
+            {
+              "type": "set",
+              "target": "osd_deduction_amount",
+              "value": "$gross_business_receipts"
+            },
+            {
+              "type": "multiply",
+              "target": "osd_deduction_amount",
+              "value": "$$osd_rate"
+            },
+            {
+              "type": "set",
+              "target": "taxable_business_income",
+              "value": "$gross_business_receipts"
+            },
+            {
+              "type": "subtract",
+              "target": "taxable_business_income",
+              "value": "osd_deduction_amount"
+            }
+          ]
+        },
+        {
+          "when": {
+            "and": [
+              {
+                "income_type": {
+                  "eq": "MIXED"
+                }
+              },
+              {
+                "tax_rate_option": {
+                  "eq": "GRADUATED"
+                }
+              },
+              {
+                "deduction_method": {
+                  "eq": "ITEMIZED"
+                }
+              }
+            ]
+          },
+          "operations": [
+            {
+              "type": "set",
+              "target": "non_taxable_benefits_applied",
+              "value": "min($thirteenth_month_and_other_benefits, $$non_taxable_benefits_ceiling)"
+            },
+            {
+              "type": "set",
+              "target": "taxable_compensation_income",
+              "value": "$gross_compensation_income"
+            },
+            {
+              "type": "subtract",
+              "target": "taxable_compensation_income",
+              "value": "$mandatory_contributions"
+            },
+            {
+              "type": "subtract",
+              "target": "taxable_compensation_income",
+              "value": "non_taxable_benefits_applied"
+            },
+            {
+              "type": "set",
+              "target": "taxable_business_income",
+              "value": "$gross_business_receipts"
+            },
+            {
+              "type": "subtract",
+              "target": "taxable_business_income",
+              "value": "$itemized_deductions"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Calculate Tax Liability",
+      "cases": [
+        {
+          "when": {
+            "income_type": {
+              "eq": "COMPENSATION"
+            }
+          },
+          "operations": [
+            {
+              "type": "set",
+              "target": "total_taxable_income",
+              "value": "taxable_compensation_income"
+            },
+            {
+              "type": "set",
+              "target": "liability",
+              "value": "lookup('individual_tax_brackets_2023', total_taxable_income)"
+            }
+          ]
+        },
+        {
+          "when": {
+            "income_type": {
+              "eq": "BUSINESS"
+            }
+          },
+          "cases": [
+            {
+              "when": {
+                "tax_rate_option": {
+                  "eq": "FLAT_8_PERCENT"
+                }
+              },
+              "operations": [
+                {
+                  "type": "set",
+                  "target": "taxable_base_for_8_percent",
+                  "value": "$gross_business_receipts"
+                },
+                {
+                  "type": "subtract",
+                  "target": "taxable_base_for_8_percent",
+                  "value": "$$tax_exempt_threshold"
+                },
+                {
+                  "type": "set",
+                  "target": "liability",
+                  "value": "max(taxable_base_for_8_percent, 0)"
+                },
+                {
+                  "type": "multiply",
+                  "target": "liability",
+                  "value": "$$optional_flat_tax_rate"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "replaces",
+                  "target": "PERCENTAGE_TAX",
+                  "description": "The 8% flat rate is in lieu of the 3% business percentage tax.",
+                  "reference": "Section 116 of the NIRC"
+                }
+              ]
+            },
+            {
+              "when": {
+                "tax_rate_option": {
+                  "eq": "GRADUATED"
+                }
+              },
+              "operations": [
+                {
+                  "type": "set",
+                  "target": "total_taxable_income",
+                  "value": "taxable_business_income"
+                },
+                {
+                  "type": "set",
+                  "target": "liability",
+                  "value": "lookup('individual_tax_brackets_2023', total_taxable_income)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "when": {
+            "income_type": {
+              "eq": "MIXED"
+            }
+          },
+          "cases": [
+            {
+              "when": {
+                "tax_rate_option": {
+                  "eq": "FLAT_8_PERCENT"
+                }
+              },
+              "operations": [
+                {
+                  "type": "set",
+                  "target": "compensation_tax",
+                  "value": "lookup('individual_tax_brackets_2023', taxable_compensation_income)"
+                },
+                {
+                  "type": "set",
+                  "target": "business_tax",
+                  "value": "$gross_business_receipts"
+                },
+                {
+                  "type": "multiply",
+                  "target": "business_tax",
+                  "value": "$$optional_flat_tax_rate"
+                },
+                {
+                  "type": "set",
+                  "target": "liability",
+                  "value": "sum(compensation_tax, business_tax)"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "replaces",
+                  "target": "PERCENTAGE_TAX",
+                  "description": "The 8% flat rate on business income is in lieu of the 3% business percentage tax.",
+                  "reference": "Section 116 of the NIRC"
+                }
+              ]
+            },
+            {
+              "when": {
+                "tax_rate_option": {
+                  "eq": "GRADUATED"
+                }
+              },
+              "operations": [
+                {
+                  "type": "set",
+                  "target": "total_taxable_income",
+                  "value": "sum(taxable_compensation_income, taxable_business_income)"
+                },
+                {
+                  "type": "set",
+                  "target": "liability",
+                  "value": "lookup('individual_tax_brackets_2023', total_taxable_income)"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Final Adjustments",
+      "operations": [
+        {
+          "type": "set",
+          "target": "liability",
+          "value": "max(liability, 0)"
+        }
+      ]
+    }
+  ]
+}
