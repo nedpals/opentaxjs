@@ -133,6 +133,41 @@ function validateLogicalExpression(
   return issues;
 }
 
+function findVariableSuggestions(
+  variableName: string,
+  rule: RawRule
+): string | undefined {
+  if (!variableName.startsWith('$')) {
+    if (rule.inputs && variableName in rule.inputs) {
+      return `Did you mean "$${variableName}"? Input variables must be referenced with $ prefix.`;
+    }
+
+    if (rule.constants && variableName in rule.constants) {
+      return `Did you mean "$$${variableName}"? Constants must be referenced with $$ prefix.`;
+    }
+  } else if (variableName.startsWith('$') && !variableName.startsWith('$$')) {
+    const withoutPrefix = variableName.slice(1);
+    if (rule.constants && withoutPrefix in rule.constants) {
+      return `Did you mean "$$${withoutPrefix}"? Constants must be referenced with $$ prefix.`;
+    }
+
+    if (rule.inputs && withoutPrefix in rule.inputs) {
+      return undefined; // Correctly formatted
+    }
+  } else if (variableName.startsWith('$$')) {
+    const withoutPrefix = variableName.slice(2);
+    if (rule.constants && withoutPrefix in rule.constants) {
+      return undefined; // Correctly formatted
+    }
+
+    if (rule.inputs && withoutPrefix in rule.inputs) {
+      return `Did you mean "$${withoutPrefix}"? Input variables should use $ prefix, not $$.`;
+    }
+  }
+
+  return undefined;
+}
+
 export function validateConditionalExpression(
   expression: ConditionalExpression,
   rule: RawRule,
@@ -175,6 +210,17 @@ export function validateConditionalExpression(
         path: `${path}/${variableName}`,
       });
       continue;
+    }
+
+    // Check if variable exists and suggest correct format
+    const suggestion = findVariableSuggestions(variableName, rule);
+    if (suggestion) {
+      issues.push({
+        severity: 'error',
+        message: `Variable reference "${variableName}" may be incorrectly formatted`,
+        path: `${path}/${variableName}`,
+        suggestion,
+      });
     }
 
     const operatorIssues = validateComparisonOperator(

@@ -392,7 +392,7 @@ describe('RuleValidator', () => {
             type: 'number',
             description: 'Business receipts (only for business income)',
             when: {
-              income_type: {
+              $income_type: {
                 eq: 'BUSINESS',
               },
             },
@@ -401,7 +401,7 @@ describe('RuleValidator', () => {
             type: 'number',
             description: 'Compensation income (only for compensation)',
             when: {
-              income_type: {
+              $income_type: {
                 eq: 'COMPENSATION',
               },
             },
@@ -439,6 +439,68 @@ describe('RuleValidator', () => {
 
       // Should catch invalid conditional operators
       expect(conditionalErrors.length).toBeGreaterThan(0);
+    });
+
+    it('should provide helpful suggestions for incorrect variable references in conditions', () => {
+      const incorrectVariableRule = {
+        ...validRule,
+        inputs: {
+          ...validRule.inputs,
+          income_type: {
+            type: 'string',
+            description: 'Income type',
+          },
+        },
+        constants: {
+          max_income: 1000000,
+        },
+        flow: [
+          {
+            name: 'Test incorrect references',
+            cases: [
+              {
+                when: {
+                  // Missing $ prefix for input variable
+                  income_type: { eq: 'BUSINESS' },
+                },
+                operations: [
+                  { type: 'set', target: 'result', value: 1 },
+                ],
+              },
+              {
+                when: {
+                  // Wrong prefix for constant (should be $$)
+                  $max_income: { gt: 500000 },
+                },
+                operations: [
+                  { type: 'set', target: 'result', value: 2 },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      const issues = validateRule(incorrectVariableRule);
+      const referenceErrors = issues.filter((i) =>
+        i.message.includes('may be incorrectly formatted')
+      );
+
+      expect(referenceErrors.length).toBe(2);
+
+      // Should suggest $ prefix for input variable
+      const inputError = referenceErrors.find((e) =>
+        e.path?.includes('income_type')
+      );
+      expect(inputError?.suggestion).toContain('$income_type');
+      expect(inputError?.suggestion).toContain('Input variables must be referenced with $ prefix');
+
+      // Should suggest $$ prefix for constant
+      const constantError = referenceErrors.find((e) =>
+        e.path?.includes('max_income')
+      );
+      expect(constantError?.suggestion).toContain('$$max_income');
+      expect(constantError?.suggestion).toContain('Constants must be referenced with $$ prefix');
     });
   });
 
