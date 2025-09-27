@@ -377,6 +377,69 @@ describe('RuleValidator', () => {
       expect(emptyOpsWarning?.message).toContain('calculations may be skipped');
       expect(emptyOpsWarning?.suggestion).toContain('Consider adding operations');
     });
+
+    it('should validate conditional input variables', () => {
+      const conditionalInputRule = {
+        ...validRule,
+        inputs: {
+          ...validRule.inputs,
+          income_type: {
+            type: 'string',
+            description: 'The type of income',
+            enum: ['COMPENSATION', 'BUSINESS', 'MIXED'],
+          },
+          business_receipts: {
+            type: 'number',
+            description: 'Business receipts (only for business income)',
+            when: {
+              income_type: {
+                eq: 'BUSINESS',
+              },
+            },
+          },
+          compensation_income: {
+            type: 'number',
+            description: 'Compensation income (only for compensation)',
+            when: {
+              income_type: {
+                eq: 'COMPENSATION',
+              },
+            },
+          },
+        },
+      };
+
+      const issues = validateRule(conditionalInputRule);
+      const errors = issues.filter((i) => i.severity === 'error');
+
+      // Should not have errors for conditional inputs
+      expect(errors).toHaveLength(0);
+
+      // Test invalid conditional syntax
+      const invalidConditionalRule = {
+        ...validRule,
+        inputs: {
+          ...validRule.inputs,
+          invalid_input: {
+            type: 'number',
+            description: 'Invalid conditional input',
+            when: {
+              income_type: {
+                invalid_operator: 'BUSINESS', // Invalid operator
+              },
+            },
+          },
+        },
+      };
+
+      const invalidIssues = validateRule(invalidConditionalRule);
+      const conditionalErrors = invalidIssues.filter((i) =>
+        i.path?.includes('/inputs/invalid_input/when') && i.severity === 'error'
+      );
+
+      // Should catch invalid conditional operators
+      expect(conditionalErrors.length).toBeGreaterThan(0);
+    });
   });
 
   describe('RuleValidationError', () => {

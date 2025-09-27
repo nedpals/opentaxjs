@@ -133,7 +133,7 @@ function validateLogicalExpression(
   return issues;
 }
 
-function validateConditionalExpression(
+export function validateConditionalExpression(
   expression: ConditionalExpression,
   rule: RawRule,
   path: string

@@ -1,11 +1,13 @@
 import type { RawRule, RawVariableSchema } from '../types';
 import type { ValidationIssue } from '../errors';
 import { isRuleOnlyIdentifier } from '@/expression/identifiers';
+import { validateConditionalExpression } from './conditions';
 
 const VALID_SCHEMA_TYPES = ['number', 'string', 'boolean', 'array', 'object'];
 
 function validateVariableSchema(
   schema: RawVariableSchema,
+  rule: RawRule,
   path: string
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
@@ -78,6 +80,16 @@ function validateVariableSchema(
     }
   }
 
+  // Validate conditional 'when' clause
+  if (schema.when) {
+    const whenIssues = validateConditionalExpression(
+      schema.when,
+      rule,
+      `${path}/when`
+    );
+    issues.push(...whenIssues);
+  }
+
   return issues;
 }
 
@@ -95,7 +107,7 @@ export function validateVariables(rule: RawRule): ValidationIssue[] {
 
   if (rule.inputs) {
     for (const [name, schema] of Object.entries(rule.inputs)) {
-      const inputIssues = validateInput(name, schema, allNames);
+      const inputIssues = validateInput(name, schema, rule, allNames);
       issues.push(...inputIssues);
       allNames.add(name);
     }
@@ -103,7 +115,7 @@ export function validateVariables(rule: RawRule): ValidationIssue[] {
 
   if (rule.outputs) {
     for (const [name, schema] of Object.entries(rule.outputs)) {
-      const outputIssues = validateOutput(name, schema, allNames);
+      const outputIssues = validateOutput(name, schema, rule, allNames);
       issues.push(...outputIssues);
       allNames.add(name);
     }
@@ -165,6 +177,7 @@ function validateConstant(
 function validateInput(
   name: string,
   schema: RawVariableSchema,
+  rule: RawRule,
   existingNames: Set<string>
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
@@ -191,7 +204,7 @@ function validateInput(
   }
 
   // Validate schema
-  const schemaIssues = validateVariableSchema(schema, path);
+  const schemaIssues = validateVariableSchema(schema, rule, path);
   issues.push(...schemaIssues);
 
   return issues;
@@ -200,6 +213,7 @@ function validateInput(
 function validateOutput(
   name: string,
   schema: RawVariableSchema,
+  rule: RawRule,
   existingNames: Set<string>
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
@@ -226,7 +240,7 @@ function validateOutput(
   }
 
   // Validate schema
-  const schemaIssues = validateVariableSchema(schema, path);
+  const schemaIssues = validateVariableSchema(schema, rule, path);
   issues.push(...schemaIssues);
 
   return issues;
