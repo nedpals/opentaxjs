@@ -648,4 +648,74 @@ describe('RuleValidator', () => {
       expect(error.message).toContain('warnings');
     });
   });
+
+  describe('Enum Validation', () => {
+    it('should validate enum arrays in schema definitions', () => {
+      const ruleWithValidEnum: RawRule = {
+        ...validRule,
+        inputs: {
+          income_type: {
+            type: 'string',
+            enum: ['COMPENSATION', 'BUSINESS', 'MIXED'],
+            description: 'Type of income',
+          },
+        },
+      };
+
+      const issues = validateRule(ruleWithValidEnum);
+      expect(issues.length).toBe(0);
+    });
+
+    it('should reject invalid enum types', () => {
+      const ruleWithInvalidEnum: RawRule = {
+        ...validRule,
+        inputs: {
+          income_type: {
+            type: 'string',
+            enum: ['COMPENSATION', 123, 'BUSINESS'], // Mixed types with number
+            description: 'Type of income',
+          },
+        },
+      };
+
+      const issues = validateRule(ruleWithInvalidEnum);
+      const enumErrors = issues.filter(i => i.message.includes('Enum value'));
+      expect(enumErrors.length).toBe(1);
+      expect(enumErrors[0].message).toContain('must be a string, got number');
+    });
+
+    it('should reject empty enum arrays', () => {
+      const ruleWithEmptyEnum: RawRule = {
+        ...validRule,
+        inputs: {
+          income_type: {
+            type: 'string',
+            enum: [],
+            description: 'Type of income',
+          },
+        },
+      };
+
+      const issues = validateRule(ruleWithEmptyEnum);
+      const enumErrors = issues.filter(i => i.message.includes('Enum cannot be empty'));
+      expect(enumErrors.length).toBe(1);
+    });
+
+    it('should reject non-array enum values', () => {
+      const ruleWithNonArrayEnum: RawRule = {
+        ...validRule,
+        inputs: {
+          income_type: {
+            type: 'string',
+            enum: 'COMPENSATION' as any, // Should be array
+            description: 'Type of income',
+          },
+        },
+      };
+
+      const issues = validateRule(ruleWithNonArrayEnum);
+      const enumErrors = issues.filter(i => i.message.includes('Enum must be an array'));
+      expect(enumErrors.length).toBe(1);
+    });
+  });
 });

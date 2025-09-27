@@ -69,6 +69,48 @@ function validateVariableSchema(
     }
   }
 
+  if (schema.enum !== undefined) {
+    if (!Array.isArray(schema.enum)) {
+      issues.push({
+        severity: 'error',
+        message: 'Enum must be an array',
+        path: `${path}/enum`,
+      });
+    } else if (schema.enum.length === 0) {
+      issues.push({
+        severity: 'error',
+        message: 'Enum cannot be empty',
+        path: `${path}/enum`,
+      });
+    } else {
+      // Validate enum values match schema type
+      for (let i = 0; i < schema.enum.length; i++) {
+        const value = schema.enum[i];
+        const valueType = typeof value;
+
+        if (schema.type === 'string' && valueType !== 'string') {
+          issues.push({
+            severity: 'error',
+            message: `Enum value at index ${i} must be a string, got ${valueType}`,
+            path: `${path}/enum/${i}`,
+          });
+        } else if (schema.type === 'number' && valueType !== 'number') {
+          issues.push({
+            severity: 'error',
+            message: `Enum value at index ${i} must be a number, got ${valueType}`,
+            path: `${path}/enum/${i}`,
+          });
+        } else if (schema.type === 'boolean' && valueType !== 'boolean') {
+          issues.push({
+            severity: 'error',
+            message: `Enum value at index ${i} must be a boolean, got ${valueType}`,
+            path: `${path}/enum/${i}`,
+          });
+        }
+      }
+    }
+  }
+
   if (schema.type === 'array' && schema.items) {
     if (!['number', 'boolean'].includes(schema.items.type)) {
       issues.push({

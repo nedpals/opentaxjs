@@ -216,4 +216,57 @@ describe('Validation Rules', () => {
       });
     }).not.toThrow();
   });
+
+  it('should validate enum constraints for input values', () => {
+    const instance = opentax({ rule: testRule });
+
+    // Should throw error for invalid enum value
+    expect(() => {
+      instance.calculate({
+        income_type: 'INVALID_TYPE', // Not in enum ['COMPENSATION', 'BUSINESS']
+        age: 25
+      });
+    }).toThrow(/Input 'income_type' value 'INVALID_TYPE' is not in allowed enum values: COMPENSATION, BUSINESS/);
+
+    // Should work with valid enum values
+    expect(() => {
+      instance.calculate({
+        income_type: 'COMPENSATION',
+        age: 25
+      });
+    }).not.toThrow();
+
+    expect(() => {
+      instance.calculate({
+        income_type: 'BUSINESS',
+        gross_receipts: 1000000,
+        tax_option: 'GRADUATED',
+        age: 25
+      });
+    }).not.toThrow();
+  });
+
+  it('should validate conditional enum constraints', () => {
+    const instance = opentax({ rule: testRule });
+
+    // Should throw error for invalid conditional enum value
+    expect(() => {
+      instance.calculate({
+        income_type: 'BUSINESS',
+        gross_receipts: 1000000,
+        tax_option: 'INVALID_OPTION', // Not in enum ['GRADUATED', 'FLAT_8_PERCENT']
+        age: 25
+      });
+    }).toThrow(/Input 'tax_option' value 'INVALID_OPTION' is not in allowed enum values: GRADUATED, FLAT_8_PERCENT/);
+
+    // Should work with valid conditional enum values
+    expect(() => {
+      instance.calculate({
+        income_type: 'BUSINESS',
+        gross_receipts: 1000000,
+        tax_option: 'FLAT_8_PERCENT',
+        age: 25
+      });
+    }).not.toThrow();
+  });
 });

@@ -125,6 +125,16 @@ export class RuleEvaluator {
             );
           }
         }
+
+        // Validate enum constraints
+        if (inputDecl.enum !== undefined && inputDecl.enum.length > 0) {
+          if (!inputDecl.enum.includes(value as string)) {
+            throw new RuleEvaluationError(
+              `Input '${inputName}' value '${value}' is not in allowed enum values: ${inputDecl.enum.join(', ')}`,
+              rule
+            );
+          }
+        }
       }
     }
 
