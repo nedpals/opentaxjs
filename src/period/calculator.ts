@@ -60,7 +60,9 @@ function calculateQuarterOverlap(
   return overlapDays / quarterDays;
 }
 
-export function calculatePeriod(options?: PeriodCalculationOptions): PeriodInfo {
+export function calculatePeriod(
+  options?: PeriodCalculationOptions
+): PeriodInfo {
   const currentYear = new Date().getFullYear();
 
   // Default to full calendar year if no dates provided
