@@ -3,8 +3,8 @@ import {
   type CallExpression,
   ExpressionParseError,
   ExpressionParser,
-} from './parser';
-import { isIdentifier } from './identifiers';
+} from '../../src/expression/parser';
+import { isIdentifier } from '../../src/expression/identifiers';
 
 describe('ExpressionParser', () => {
   describe('Variable References', () => {
