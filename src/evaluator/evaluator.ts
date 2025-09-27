@@ -93,10 +93,33 @@ export class RuleEvaluator {
       }
     }
 
-    // Create tables lookup
+    // Create tables lookup and resolve bracket constants
     const tablesMap: Record<string, Table> = {};
     for (const table of rule.tables) {
-      tablesMap[table.name] = table;
+      tablesMap[table.name] = {
+        name: table.name,
+        brackets: table.brackets.map((bracket) => ({
+          ...bracket,
+          min:
+            typeof bracket.min === 'string'
+              ? (this.expressionEvaluator.evaluate(bracket.min, {
+                  inputs,
+                  constants: rule.constants,
+                  calculated: {},
+                  tables: {}, // Empty during table processing
+                }) as number)
+              : bracket.min,
+          max:
+            typeof bracket.max === 'string'
+              ? (this.expressionEvaluator.evaluate(bracket.max, {
+                  inputs,
+                  constants: rule.constants,
+                  calculated: {},
+                  tables: {}, // Empty during table processing
+                }) as number)
+              : bracket.max,
+        })),
+      };
     }
 
     return {
