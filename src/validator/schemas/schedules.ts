@@ -1,6 +1,6 @@
 import type { RawRule } from '../types';
 import type { ValidationIssue } from '../errors';
-import { VALID_FREQUENCIES } from '../../types';
+import { VALID_FREQUENCIES } from '@/types';
 
 export function validateFilingSchedules(rule: RawRule): ValidationIssue[] {
   const issues: ValidationIssue[] = [];

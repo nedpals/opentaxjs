@@ -5,7 +5,7 @@ import type {
   LogicalExpression,
 } from '../types';
 import type { ValidationIssue } from '../errors';
-import { COMPARISON_OPERATORS, LOGICAL_OPERATORS } from '../../types';
+import { COMPARISON_OPERATORS, LOGICAL_OPERATORS } from '@/types';
 
 function validateComparisonOperator(
   operator: ComparisonOperator,

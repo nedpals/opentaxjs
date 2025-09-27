@@ -1,6 +1,6 @@
 import type { RawRule, RawVariableSchema } from '../types';
 import type { ValidationIssue } from '../errors';
-import { isRuleOnlyIdentifier } from '../../expression/identifiers';
+import { isRuleOnlyIdentifier } from '@/expression/identifiers';
 
 const VALID_SCHEMA_TYPES = ['number', 'string', 'boolean', 'array', 'object'];
 

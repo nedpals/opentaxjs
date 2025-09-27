@@ -1,4 +1,4 @@
-import type { Operation, Rule, EvaluationContext } from '../types';
+import type { Operation, Rule, EvaluationContext } from '@/types';
 
 export class RuleEvaluationError extends Error {
   constructor(

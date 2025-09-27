@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { RuleEvaluator } from '../../src/evaluator';
-import type { Rule } from '../../src/types';
+import { RuleEvaluator } from '@/evaluator';
+import type { Rule } from '@/types';
 
 describe('RuleEvaluator', () => {
   const evaluator = new RuleEvaluator();
@@ -117,11 +117,11 @@ describe('RuleEvaluator', () => {
         ]
       };
 
-      const result = evaluator.evaluate(rule, { 
-        income: 60000, 
-        deductions: 10000 
+      const result = evaluator.evaluate(rule, {
+        income: 60000,
+        deductions: 10000
       });
-      
+
       expect(result.taxable_income).toBe(50000);
       expect(result.liability).toBe(7500); // 50000 * 0.15
     });
@@ -185,15 +185,15 @@ describe('RuleEvaluator', () => {
         ]
       };
 
-      const seniorResult = evaluator.evaluate(rule, { 
-        income: 50000, 
-        is_senior: true 
+      const seniorResult = evaluator.evaluate(rule, {
+        income: 50000,
+        is_senior: true
       });
       expect(seniorResult.exemption).toBe(20000);
 
-      const regularResult = evaluator.evaluate(rule, { 
-        income: 50000, 
-        is_senior: false 
+      const regularResult = evaluator.evaluate(rule, {
+        income: 50000,
+        is_senior: false
       });
       expect(regularResult.exemption).toBe(10000);
     });

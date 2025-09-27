@@ -2,8 +2,7 @@ import type { Rule, EvaluationContext, Operation, FlowStep } from '@/types';
 import { RuleEvaluationError, OperationError } from './errors';
 import { OPERATION_REGISTRY } from './operations';
 import { ConditionalEvaluator } from './conditional';
-import { ExpressionEvaluator } from '../expression';
-import { SymbolRegistry } from '../symbol';
+import { ExpressionEvaluator } from '@/expression';
 
 export class RuleEvaluator {
   private conditionalEvaluator: ConditionalEvaluator;

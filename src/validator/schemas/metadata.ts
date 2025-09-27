@@ -1,5 +1,5 @@
 import type { RawRule, ValidatorConfig } from '../types';
-import { VALID_TAXPAYER_TYPES } from '../../types';
+import { VALID_TAXPAYER_TYPES } from '@/types';
 import type { ValidationIssue } from '../errors';
 
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;

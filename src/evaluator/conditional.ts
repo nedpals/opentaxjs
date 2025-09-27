@@ -3,13 +3,9 @@ import type {
   ComparisonCondition,
   LogicalCondition,
   EvaluationContext,
-} from '../types';
+} from '@/types';
 import { RuleEvaluationError } from './errors';
-import {
-  ExpressionEvaluator,
-  ExpressionEvaluationError,
-  ExpressionParser,
-} from '../expression';
+import { ExpressionEvaluator, ExpressionEvaluationError } from '@/expression';
 
 export class ConditionalEvaluator {
   private expressionEvaluator: ExpressionEvaluator;

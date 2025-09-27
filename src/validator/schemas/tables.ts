@@ -1,6 +1,6 @@
 import type { RawRule, RawTableBracket } from '../types';
 import type { ValidationIssue } from '../errors';
-import { isRuleOnlyIdentifier } from '../../expression';
+import { isRuleOnlyIdentifier } from '@/expression';
 
 const MAX_TAXABLE_INCOME_REFERENCE = '$$MAX_TAXABLE_INCOME';
 

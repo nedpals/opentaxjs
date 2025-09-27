@@ -5,7 +5,7 @@ import type {
   RawConditionalCase,
 } from '../types';
 import type { ValidationIssue } from '../errors';
-import { VALID_OPERATION_TYPES } from '../../types';
+import { VALID_OPERATION_TYPES } from '@/types';
 import { isRuleOnlyIdentifier } from '../../expression/identifiers';
 
 function validateValueReference(

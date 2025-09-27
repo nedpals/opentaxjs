@@ -5,13 +5,9 @@ import type {
   ArithmeticOperation,
   MinMaxOperation,
   LookupOperation,
-} from '../types';
+} from '@/types';
 import { OperationError, TableError } from './errors';
-import {
-  ExpressionEvaluator,
-  ExpressionEvaluationError,
-  ExpressionParser,
-} from '../expression';
+import { ExpressionEvaluator, ExpressionEvaluationError } from '@/expression';
 
 export type OperationFunction = (
   operation: Operation,

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { validateRule } from '@/validator/validator';
 import { RuleValidationError } from '@/validator/errors';
-import type { RawRule } from '../../src/validator/types';
+import type { RawRule } from '@/validator/types';
 
 const validRule: RawRule = {
   $version: '1.0.0',
