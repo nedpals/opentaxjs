@@ -29,7 +29,7 @@ export const COMPARISON_OPERATORS = [
 ] as const;
 
 export const LOGICAL_OPERATORS = ['and', 'or', 'not'] as const;
-export const VALID_FREQUENCIES = ['quarterly', 'annual'] as const;
+export const VALID_FREQUENCIES = ['quarterly', 'monthly', 'annually'] as const;
 
 export type TaxpayerType = (typeof VALID_TAXPAYER_TYPES)[number];
 export type OperationType = (typeof VALID_OPERATION_TYPES)[number];
@@ -63,7 +63,7 @@ export interface Form {
 
 export interface FilingSchedule {
   name: string;
-  frequency: 'monthly' | 'quarterly' | 'annually';
+  frequency: FilingFrequency;
   filing_day: number;
   when?: Condition;
   forms: Form;
