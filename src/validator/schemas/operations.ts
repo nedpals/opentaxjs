@@ -256,9 +256,12 @@ function validateConditionalCase(
 
   if (!Array.isArray(caseItem.operations) || caseItem.operations.length === 0) {
     issues.push({
-      severity: 'error',
-      message: 'Case must have at least one operation',
+      severity: 'warning',
+      message:
+        'Case has no operations - calculations may be skipped if no nested cases handle the logic',
       path: `${basePath}/operations`,
+      suggestion:
+        'Consider adding operations or ensure nested cases handle all required calculations',
     });
   } else {
     caseItem.operations.forEach((operation, operationIndex) => {

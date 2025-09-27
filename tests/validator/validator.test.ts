@@ -346,6 +346,37 @@ describe('RuleValidator', () => {
       );
       expect(underscoreError?.message).toContain('Invalid input identifier');
     });
+
+    it('should warn when case has empty operations', () => {
+      const emptyOperationsRule = {
+        ...validRule,
+        flow: [
+          {
+            name: 'Test conditional step',
+            cases: [
+              {
+                when: {
+                  $gross_income: {
+                    gt: 1000,
+                  },
+                },
+                operations: [], // Empty operations array
+              },
+            ],
+          },
+        ],
+      };
+
+      const issues = validateRule(emptyOperationsRule);
+      const emptyOpsWarning = issues.find((i) =>
+        i.message.includes('Case has no operations') && i.severity === 'warning'
+      );
+
+      expect(emptyOpsWarning).toBeDefined();
+      expect(emptyOpsWarning?.path).toBe('/flow/0/cases/0/operations');
+      expect(emptyOpsWarning?.message).toContain('calculations may be skipped');
+      expect(emptyOpsWarning?.suggestion).toContain('Consider adding operations');
+    });
   });
 
   describe('RuleValidationError', () => {
