@@ -32,6 +32,11 @@ describe('opentax API', () => {
         type: 'number',
         description: 'Annual gross income',
         minimum: 0
+      },
+      filing_status: {
+        type: 'string',
+        description: 'Filing status for tax calculation',
+        enum: ['single', 'married_jointly', 'married_separately', 'head_of_household']
       }
     },
     outputs: {
@@ -133,7 +138,7 @@ describe('opentax API', () => {
     });
 
     it('should calculate tax liability with basic inputs', () => {
-      const result = instance.calculate({ gross_income: 500000 });
+      const result = instance.calculate({ gross_income: 500000, filing_status: 'single' });
 
       expect(result).toBeDefined();
       console.log('Debug - Result calculated:', result.calculated);
@@ -145,7 +150,7 @@ describe('opentax API', () => {
     });
 
     it('should return full evaluation context', () => {
-      const result = instance.calculate({ gross_income: 500000 });
+      const result = instance.calculate({ gross_income: 500000, filing_status: 'single' });
 
       expect(result.debug?.context).toBeDefined();
       expect(result.inputs.gross_income).toBe(500000);
@@ -155,7 +160,7 @@ describe('opentax API', () => {
     });
 
     it('should return period information', () => {
-      const result = instance.calculate({ gross_income: 500000 });
+      const result = instance.calculate({ gross_income: 500000, filing_status: 'single' });
 
       expect(result.period).toBeDefined();
       expect(result.period!.affected_quarters).toEqual([1, 2, 3, 4]);
@@ -163,7 +168,7 @@ describe('opentax API', () => {
     });
 
     it('should generate filing schedules for full year', () => {
-      const result = instance.calculate({ gross_income: 500000 });
+      const result = instance.calculate({ gross_income: 500000, filing_status: 'single' });
 
       expect(result.liabilities).toHaveLength(5); // 4 quarterly + 1 annual
 
@@ -187,7 +192,7 @@ describe('opentax API', () => {
 
     it('should handle partial year periods with proration', () => {
       const result = instance.calculate(
-        { gross_income: 500000 },
+        { gross_income: 500000, filing_status: 'single' },
         { start_date: '2024-07-01', end_date: '2024-12-31' }
       );
 
@@ -201,7 +206,7 @@ describe('opentax API', () => {
     });
 
     it('should handle zero income correctly', () => {
-      const result = instance.calculate({ gross_income: 200000 });
+      const result = instance.calculate({ gross_income: 200000, filing_status: 'single' });
 
       expect(result.calculated.taxable_income).toBe(0); // max(0, 200000 - 250000)
       expect(result.liability).toBe(0);
@@ -212,7 +217,7 @@ describe('opentax API', () => {
     });
 
     it('should preserve input values in variables', () => {
-      const inputs = { gross_income: 500000 };
+      const inputs = { gross_income: 500000, filing_status: 'single' };
       const result = instance.calculate(inputs);
 
       expect(result.inputs.gross_income).toBe(inputs.gross_income);
@@ -248,7 +253,7 @@ describe('opentax API', () => {
 
     it('should generate schedule when condition is met', () => {
       const instance = opentax({ rule: ruleWithConditionalSchedule });
-      const result = instance.calculate({ gross_income: 500000 });
+      const result = instance.calculate({ gross_income: 500000, filing_status: 'single' });
 
       expect(result.liability).toBe(62500);
 
@@ -259,7 +264,7 @@ describe('opentax API', () => {
 
     it('should skip schedule when condition is not met', () => {
       const instance = opentax({ rule: ruleWithConditionalSchedule });
-      const result = instance.calculate({ gross_income: 400000 }); // liability = 37500
+      const result = instance.calculate({ gross_income: 400000, filing_status: 'single' }); // liability = 37500
 
       // TODO: Fix lookup table calculation
       // expect(result.liability).toBe(37500);
@@ -280,7 +285,7 @@ describe('opentax API', () => {
     });
 
     it('should use period calculation for filing dates', () => {
-      const result = instance.calculate({ gross_income: 500000 });
+      const result = instance.calculate({ gross_income: 500000, filing_status: 'single' });
 
       result.liabilities.forEach(liability => {
         expect(liability.target_filing_date).toBeInstanceOf(Date);
@@ -290,7 +295,7 @@ describe('opentax API', () => {
 
     it('should handle custom period options', () => {
       const result = instance.calculate(
-        { gross_income: 500000 },
+        { gross_income: 500000, filing_status: 'single' },
         { start_date: '2024-01-01', end_date: '2024-06-30' }
       );
 
@@ -302,7 +307,7 @@ describe('opentax API', () => {
 
     it('should apply proration factors to quarterly amounts', () => {
       const result = instance.calculate(
-        { gross_income: 500000 },
+        { gross_income: 500000, filing_status: 'single' },
         { start_date: '2024-02-15', end_date: '2024-03-31' }
       );
 
@@ -340,7 +345,7 @@ describe('opentax API', () => {
       const instance = opentax({ rule: ruleWithError });
 
       expect(() => {
-        instance.calculate({ gross_income: 500000 });
+        instance.calculate({ gross_income: 500000, filing_status: 'single' });
       }).toThrow();
     });
 
@@ -354,6 +359,61 @@ describe('opentax API', () => {
       expect(() => {
         opentax({ rule: invalidRule as Rule });
       }).toThrow(RuleValidationError);
+    });
+  });
+
+  describe('string inputs and enums', () => {
+    it('should handle string inputs with enum constraints', () => {
+      const instance = opentax({ rule: baseRule });
+      const result = instance.calculate({
+        gross_income: 500000,
+        filing_status: 'single'
+      });
+
+      expect(result.inputs.filing_status).toBe('single');
+      expect(result.inputs.gross_income).toBe(500000);
+    });
+
+    it('should work with conditional logic on string enums', () => {
+      const ruleWithStringCondition: Rule = {
+        ...baseRule,
+        flow: [
+          ...baseRule.flow,
+          {
+            name: 'Apply filing status bonus',
+            cases: [
+              {
+                when: {
+                  '$filing_status': { eq: "'married_jointly'" }
+                },
+                operations: [
+                  {
+                    type: 'multiply',
+                    target: 'liability',
+                    value: 0.9  // 10% discount for married filing jointly
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      };
+
+      const instance = opentax({ rule: ruleWithStringCondition });
+
+      // Test with single status (no discount)
+      const singleResult = instance.calculate({
+        gross_income: 500000,
+        filing_status: 'single'
+      });
+      expect(singleResult.liability).toBe(62500);
+
+      // Test with married jointly status (10% discount)
+      const marriedResult = instance.calculate({
+        gross_income: 500000,
+        filing_status: 'married_jointly'
+      });
+      expect(marriedResult.liability).toBe(56250); // 62500 * 0.9
     });
   });
 });

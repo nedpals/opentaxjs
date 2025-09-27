@@ -33,8 +33,8 @@ export interface ExecutionStep {
 export interface CalculationResult {
   liability: number;
   liabilities: TaxLiability[];
-  calculated: Record<string, number | boolean>;
-  inputs: Record<string, number | boolean>;
+  calculated: Record<string, number | boolean | string>;
+  inputs: Record<string, number | boolean | string>;
   period?: PeriodInfo;
   debug?: {
     context: EvaluationContext;
@@ -48,7 +48,7 @@ export interface OpenTaxConfig {
 
 export interface OpenTaxInstance {
   calculate(
-    inputs: Record<string, number | boolean>,
+    inputs: Record<string, number | boolean | string>,
     options?: PeriodCalculationOptions
   ): CalculationResult;
 }
@@ -119,12 +119,12 @@ export default function opentax(config: OpenTaxConfig): OpenTaxInstance {
   const rule = config.rule;
   const evaluator = new RuleEvaluator(BUILTINS);
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-  const evaluate = (inputs: Record<string, number | boolean>) =>
+  const evaluate = (inputs: Record<string, number | boolean | string>) =>
     evaluator.evaluate(rule, inputs);
 
   return {
     calculate(
-      inputs: Record<string, number | boolean>,
+      inputs: Record<string, number | boolean | string>,
       options?: PeriodCalculationOptions
     ): CalculationResult {
       const context = evaluate(inputs);

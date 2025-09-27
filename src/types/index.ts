@@ -38,10 +38,12 @@ export type LogicalOperatorType = (typeof LOGICAL_OPERATORS)[number];
 export type FilingFrequency = (typeof VALID_FREQUENCIES)[number];
 
 export interface VariableDeclaration {
-  type: 'number' | 'boolean';
+  type: 'number' | 'boolean' | 'string';
   description: string;
   minimum?: number;
   maximum?: number;
+  enum?: string[];
+  pattern?: string;
 }
 
 export interface TableBracket {
@@ -139,7 +141,7 @@ export interface Rule {
   jurisdiction: string;
   taxpayer_type: string;
   author: string;
-  constants: Record<string, number | boolean>;
+  constants: Record<string, number | boolean | string>;
   tables: Table[];
   inputs: Record<string, VariableDeclaration>;
   outputs: Record<string, VariableDeclaration>;
@@ -148,8 +150,8 @@ export interface Rule {
 }
 
 export interface EvaluationContext {
-  inputs: Record<string, number | boolean>;
-  constants: Record<string, number | boolean>;
-  calculated: Record<string, number | boolean>;
+  inputs: Record<string, number | boolean | string>;
+  constants: Record<string, number | boolean | string>;
+  calculated: Record<string, number | boolean | string>;
   tables: Record<string, Table>;
 }

@@ -130,11 +130,14 @@ export const BUILTIN_FUNCTIONS: Record<string, FunctionDefinition> = {
   },
 };
 
-export const BUILTIN_CONSTANTS: Record<string, number | boolean> = {
+export const BUILTIN_CONSTANTS: Record<string, number | boolean | string> = {
   MAX_TAXABLE_INCOME: 9007199254740991, // IEEE 754 maximum safe integer
 };
 
-export const BUILTIN_OUTPUT_VARIABLES: Record<string, number | boolean> = {
+export const BUILTIN_OUTPUT_VARIABLES: Record<
+  string,
+  number | boolean | string
+> = {
   liability: 0,
 };
 

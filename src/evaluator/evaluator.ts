@@ -23,7 +23,7 @@ export class RuleEvaluator {
 
   evaluate(
     rule: Rule,
-    inputs: Record<string, number | boolean> = {}
+    inputs: Record<string, number | boolean | string> = {}
   ): EvaluationContext {
     try {
       const context = this.createContext(rule, inputs);
@@ -54,7 +54,7 @@ export class RuleEvaluator {
 
   private createContext(
     rule: Rule,
-    inputs: Record<string, number | boolean>
+    inputs: Record<string, number | boolean | string>
   ): EvaluationContext {
     // Validate required inputs
     for (const [inputName, inputDecl] of Object.entries(rule.inputs)) {

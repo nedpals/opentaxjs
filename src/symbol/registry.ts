@@ -11,8 +11,8 @@ export interface SymbolInfo {
 
 export interface BuiltinSymbols {
   functions?: Record<string, FunctionDefinition>;
-  constants?: Record<string, number | boolean>;
-  variables?: Record<string, number | boolean>;
+  constants?: Record<string, number | boolean | string>;
+  variables?: Record<string, number | boolean | string>;
 }
 
 export interface FunctionContext {
@@ -47,9 +47,9 @@ export class VariableResolutionError extends Error {
 }
 
 export interface VariableContext {
-  inputs: Record<string, number | boolean>;
-  constants: Record<string, number | boolean>;
-  calculated: Record<string, number | boolean>;
+  inputs: Record<string, number | boolean | string>;
+  constants: Record<string, number | boolean | string>;
+  calculated: Record<string, number | boolean | string>;
 }
 
 export class SymbolRegistry {
@@ -136,6 +136,10 @@ export class SymbolRegistry {
     }
   }
 
+  private isVariableReference(str: string): boolean {
+    return str.startsWith('$') || /^[a-z][a-z0-9_]*$/.test(str);
+  }
+
   /**
    * Resolves a variable reference to its actual value
    * @param reference Variable reference (e.g., '$income', '$$tax_rate', 'taxable_income')
@@ -145,9 +149,14 @@ export class SymbolRegistry {
   resolveValue(
     reference: string | number | boolean,
     context: VariableContext
-  ): number | boolean {
+  ): number | boolean | string {
     // Return primitives as-is
     if (typeof reference === 'number' || typeof reference === 'boolean') {
+      return reference;
+    }
+
+    // Handle string literals (not variable references)
+    if (typeof reference === 'string' && !this.isVariableReference(reference)) {
       return reference;
     }
 
@@ -161,7 +170,7 @@ export class SymbolRegistry {
   private resolveVariable(
     varName: string,
     context: VariableContext
-  ): number | boolean {
+  ): number | boolean | string {
     // Input variable ($prefix)
     if (varName.startsWith('$') && !varName.startsWith('$$')) {
       const inputName = varName.slice(1);
@@ -209,7 +218,7 @@ export class SymbolRegistry {
   private resolveUnprefixedVariable(
     varName: string,
     context: VariableContext
-  ): number | boolean {
+  ): number | boolean | string {
     // Priority: calculated > inputs > constants
     if (varName in context.calculated) {
       return context.calculated[varName];
@@ -233,7 +242,7 @@ export class SymbolRegistry {
   private getInputValue(
     inputName: string,
     context: VariableContext
-  ): number | boolean {
+  ): number | boolean | string {
     if (inputName in context.inputs) {
       return context.inputs[inputName];
     }
@@ -249,7 +258,7 @@ export class SymbolRegistry {
   private getConstantValue(
     constName: string,
     context: VariableContext
-  ): number | boolean {
+  ): number | boolean | string {
     if (constName in context.constants) {
       return context.constants[constName];
     }
@@ -265,7 +274,7 @@ export class SymbolRegistry {
   resolveBatch(
     references: (string | number | boolean)[],
     context: VariableContext
-  ): (number | boolean)[] {
+  ): (number | boolean | string)[] {
     return references.map((ref) => this.resolveValue(ref, context));
   }
 

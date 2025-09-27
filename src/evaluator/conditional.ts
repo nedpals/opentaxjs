@@ -61,12 +61,6 @@ export class ConditionalEvaluator {
         variableContext
       );
 
-      if (typeof result === 'string') {
-        throw new RuleEvaluationError(
-          `String values are not allowed in conditional expressions: '${result}'`
-        );
-      }
-
       return this.evaluateComparison(result, comparison, context);
     }
 
@@ -97,7 +91,7 @@ export class ConditionalEvaluator {
   }
 
   private evaluateComparison(
-    value: number | boolean,
+    value: number | boolean | string,
     comparison: ComparisonCondition,
     context: EvaluationContext
   ): boolean {
@@ -173,7 +167,7 @@ export class ConditionalEvaluator {
   private resolveComparisonValue(
     value: string | number | boolean,
     context: EvaluationContext
-  ): number | boolean {
+  ): number | boolean | string {
     if (typeof value === 'number' || typeof value === 'boolean') {
       return value;
     }
@@ -189,12 +183,6 @@ export class ConditionalEvaluator {
         value as string,
         variableContext
       );
-
-      if (typeof result === 'string') {
-        throw new RuleEvaluationError(
-          `String values are not allowed in conditional expressions: '${result}'`
-        );
-      }
 
       return result;
     } catch (error) {

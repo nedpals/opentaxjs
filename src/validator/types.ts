@@ -10,7 +10,7 @@ export interface RawRule {
   taxpayer_type: TaxpayerType | string;
   category?: string;
   author?: string;
-  constants?: Record<string, number | boolean>;
+  constants?: Record<string, number | boolean | string>;
   tables?: RawTable[];
   inputs?: Record<string, RawVariableSchema>;
   outputs?: Record<string, RawVariableSchema>;

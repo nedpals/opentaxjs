@@ -12,16 +12,16 @@ import { ExpressionParser } from './parser';
 import { type FunctionDefinition, SymbolRegistry } from '@/symbol';
 
 export interface VariableContext {
-  inputs: Record<string, number | boolean>;
-  constants: Record<string, number | boolean>;
-  calculated: Record<string, number | boolean>;
+  inputs: Record<string, number | boolean | string>;
+  constants: Record<string, number | boolean | string>;
+  calculated: Record<string, number | boolean | string>;
   tables?: Record<string, unknown>;
 }
 
 export interface ExpressionEvaluatorConfig {
   builtinFunctions?: Record<string, FunctionDefinition>;
-  builtinConstants?: Record<string, number | boolean>;
-  builtinVariables?: Record<string, number | boolean>;
+  builtinConstants?: Record<string, number | boolean | string>;
+  builtinVariables?: Record<string, number | boolean | string>;
 }
 
 export class ExpressionEvaluationError extends Error {
@@ -191,7 +191,7 @@ export class ExpressionEvaluator {
   private evaluateInputVariable(
     expression: InputVariableExpression,
     context: VariableContext
-  ): number | boolean {
+  ): number | boolean | string {
     const { name } = expression;
 
     // Validate symbol usage
@@ -211,7 +211,7 @@ export class ExpressionEvaluator {
   private evaluateConstantVariable(
     expression: ConstantVariableExpression,
     context: VariableContext
-  ): number | boolean {
+  ): number | boolean | string {
     const { name } = expression;
 
     // Validate symbol usage
@@ -237,7 +237,7 @@ export class ExpressionEvaluator {
   private evaluateCalculatedVariable(
     expression: CalculatedVariableExpression,
     context: VariableContext
-  ): number | boolean {
+  ): number | boolean | string {
     const { name } = expression;
 
     // Validate symbol usage
@@ -483,9 +483,9 @@ export class ExpressionEvaluator {
   }
 
   private createContext(
-    inputs: Record<string, number | boolean> = {},
-    constants: Record<string, number | boolean> = {},
-    calculated: Record<string, number | boolean> = {}
+    inputs: Record<string, number | boolean | string> = {},
+    constants: Record<string, number | boolean | string> = {},
+    calculated: Record<string, number | boolean | string> = {}
   ): VariableContext {
     return {
       inputs,
