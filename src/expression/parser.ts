@@ -1,3 +1,5 @@
+import { isIdentifier } from './identifiers';
+
 export interface InputVariableExpression {
   type: 'input_variable';
   name: string;
@@ -68,14 +70,6 @@ export class ExpressionParser {
   static parse(expression: string): ParsedExpression {
     const parser = new ExpressionParser(expression);
     return parser.parseExpression();
-  }
-
-  static validateIdentifier(identifier: string): boolean {
-    return /^[a-zA-Z][a-zA-Z0-9_]*$/.test(identifier);
-  }
-
-  private validateIdentifier(identifier: string): boolean {
-    return ExpressionParser.validateIdentifier(identifier);
   }
 
   private parseExpression(): ParsedExpression {
@@ -419,7 +413,7 @@ export class ExpressionParser {
 
     const identifier = this.expression.slice(this.position, end);
 
-    if (!this.validateIdentifier(identifier)) {
+    if (!isIdentifier(identifier)) {
       throw new ExpressionParseError(
         `Invalid identifier '${identifier}'. Identifiers must start with a letter and contain only letters, digits, and underscores`,
         this.expression,
@@ -445,7 +439,7 @@ export class ExpressionParser {
 
     const identifier = this.expression.slice(this.position, end);
 
-    if (this.validateIdentifier(identifier)) {
+    if (isIdentifier(identifier)) {
       return identifier;
     }
 

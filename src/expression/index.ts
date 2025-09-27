@@ -17,6 +17,13 @@ export { ExpressionParseError, ExpressionParser } from './parser';
 
 export * from './builtins';
 
+export {
+  IDENTIFIER_REGEX,
+  RULE_ONLY_IDENTIFIER_REGEX,
+  isIdentifier,
+  isRuleOnlyIdentifier,
+} from './identifiers';
+
 import {
   ExpressionEvaluator,
   type ExpressionEvaluatorConfig,

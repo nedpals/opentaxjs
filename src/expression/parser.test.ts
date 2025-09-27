@@ -4,6 +4,7 @@ import {
   ExpressionParseError,
   ExpressionParser,
 } from './parser';
+import { isIdentifier } from './identifiers';
 
 describe('ExpressionParser', () => {
   describe('Variable References', () => {
@@ -483,24 +484,24 @@ describe('ExpressionParser', () => {
   });
 
   describe('Static Methods', () => {
-    describe('validateIdentifier', () => {
+    describe('isIdentifier', () => {
       it('should validate correct identifiers', () => {
-        expect(ExpressionParser.validateIdentifier('gross_income')).toBe(true);
-        expect(ExpressionParser.validateIdentifier('tax_rate_2024')).toBe(true);
-        expect(ExpressionParser.validateIdentifier('liability')).toBe(true);
-        expect(ExpressionParser.validateIdentifier('a')).toBe(true);
-        expect(ExpressionParser.validateIdentifier('a1')).toBe(true);
+        expect(isIdentifier('gross_income')).toBe(true);
+        expect(isIdentifier('tax_rate_2024')).toBe(true);
+        expect(isIdentifier('liability')).toBe(true);
+        expect(isIdentifier('a')).toBe(true);
+        expect(isIdentifier('a1')).toBe(true);
       });
 
       it('should reject invalid identifiers', () => {
         // Now accepts uppercase identifiers
-        expect(ExpressionParser.validateIdentifier('GrossIncome')).toBe(true);
+        expect(isIdentifier('GrossIncome')).toBe(true);
         // Still rejects identifiers starting with underscore
-        expect(ExpressionParser.validateIdentifier('_private')).toBe(false);
-        expect(ExpressionParser.validateIdentifier('2024_rate')).toBe(false);
-        expect(ExpressionParser.validateIdentifier('tax-rate')).toBe(false);
-        expect(ExpressionParser.validateIdentifier('')).toBe(false);
-        expect(ExpressionParser.validateIdentifier('tax rate')).toBe(false);
+        expect(isIdentifier('_private')).toBe(false);
+        expect(isIdentifier('2024_rate')).toBe(false);
+        expect(isIdentifier('tax-rate')).toBe(false);
+        expect(isIdentifier('')).toBe(false);
+        expect(isIdentifier('tax rate')).toBe(false);
       });
     });
   });
