@@ -206,8 +206,9 @@ export class RuleEvaluator {
       for (const case_ of step.cases) {
         if (
           !case_.when ||
-          (case_.operations && Array.isArray(case_.operations)) &&
-          this.conditionalEvaluator.evaluate(case_.when, currentContext)
+          (case_.operations &&
+            Array.isArray(case_.operations) &&
+            this.conditionalEvaluator.evaluate(case_.when, currentContext))
         ) {
           // Execute this case's operations
           for (const operation of case_.operations) {
