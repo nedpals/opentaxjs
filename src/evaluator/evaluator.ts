@@ -11,6 +11,7 @@ import { RuleEvaluationError, OperationError } from './errors';
 import { OPERATION_REGISTRY } from './operations';
 import { ConditionalEvaluator } from './conditional';
 import { ExpressionEvaluator, ExpressionEvaluatorConfig } from '@/expression';
+import { validateInputs, InputValidationError } from '@/input_validator';
 
 export class RuleEvaluator {
   private conditionalEvaluator: ConditionalEvaluator;
@@ -58,87 +59,11 @@ export class RuleEvaluator {
   }
 
   private createContext(rule: Rule, inputs: VariableMap): EvaluationContext {
-    const tempContext: EvaluationContext = {
-      inputs: inputs,
-      constants: rule.constants || {},
-      calculated: {},
-      tables: {},
-    };
-
-    // Validate inputs, considering conditional requirements and default values
-    for (const [inputName, inputDecl] of Object.entries(rule.inputs)) {
-      let isRequired = true;
-      const hasDefault = inputDecl.default !== undefined;
-
-      if (inputDecl.when) {
-        try {
-          isRequired = this.conditionalEvaluator.evaluate(
-            inputDecl.when,
-            tempContext
-          );
-        } catch {
-          // If we can't evaluate the condition, assume it's required for safety
-          isRequired = true;
-        }
-      }
-
-      // Apply default values for missing inputs when they are required or conditional
-      if (!(inputName in inputs) && hasDefault && isRequired) {
-        tempContext.inputs[inputName] = inputDecl.default!;
-      }
-
-      // Only validate if the input is required by its condition AND has no default value
-      if (isRequired && !hasDefault) {
-        if (!(inputName in inputs)) {
-          throw new RuleEvaluationError(
-            `Required input '${inputName}' not provided`,
-            rule
-          );
-        }
-      }
-
-      // Validate provided inputs (either explicitly provided or from defaults)
-      if (inputName in tempContext.inputs) {
-        const value = tempContext.inputs[inputName];
-        const expectedType = inputDecl.type;
-        const actualType = typeof value;
-
-        if (actualType !== expectedType) {
-          throw new RuleEvaluationError(
-            `Input '${inputName}' has wrong type. Expected ${expectedType}, got ${actualType}`,
-            rule
-          );
-        }
-
-        // Validate numeric ranges
-        if (expectedType === 'number' && typeof value === 'number') {
-          if (inputDecl.minimum !== undefined && value < inputDecl.minimum) {
-            throw new RuleEvaluationError(
-              `Input '${inputName}' value ${value} is below minimum ${inputDecl.minimum}`,
-              rule
-            );
-          }
-          if (inputDecl.maximum !== undefined && value > inputDecl.maximum) {
-            throw new RuleEvaluationError(
-              `Input '${inputName}' value ${value} is above maximum ${inputDecl.maximum}`,
-              rule
-            );
-          }
-        }
-
-        // Validate enum constraints
-        if (inputDecl.enum !== undefined && inputDecl.enum.length > 0) {
-          if (!inputDecl.enum.includes(value as string)) {
-            throw new RuleEvaluationError(
-              `Input '${inputName}' value '${value}' is not in allowed enum values: ${inputDecl.enum.join(', ')}`,
-              rule
-            );
-          }
-        }
-      }
+    const issues = validateInputs(rule, inputs, this.conditionalEvaluator);
+    if (issues.length > 0) {
+      throw InputValidationError.fromIssues(issues, rule);
     }
 
-    // Create tables lookup and resolve bracket constants
     const tablesMap: Record<string, Table> = {};
     for (const table of rule.tables || []) {
       tablesMap[table.name] = {
