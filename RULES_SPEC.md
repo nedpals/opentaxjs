@@ -158,13 +158,28 @@ A complete rule is a JSON object containing all the components needed for tax ca
       "type": "number",
       "description": "The total income for the period"
     },
+    "income_type": {
+      "type": "string",
+      "enum": ["EMPLOYEE", "FREELANCE", "BUSINESS"],
+      "description": "Type of income source"
+    },
     "deductions": {
       "type": "number",
       "description": "Total deductions applicable to the income"
     },
+    "business_receipts": {
+      "type": "number",
+      "description": "Gross business receipts for the period",
+      "when": {
+        "income_type": { "eq": "BUSINESS" }
+      }
+    },
     "is_freelance": {
       "type": "boolean",
-      "description": "Indicates if the income is from freelance work"
+      "description": "Indicates if the income is from freelance work",
+      "when": {
+        "income_type": { "eq": "FREELANCE" }
+      }
     }
   },
   "outputs": {
@@ -172,22 +187,57 @@ A complete rule is a JSON object containing all the components needed for tax ca
       "type": "number",
       "description": "Cumulative gross income for the period"
     },
+    "adjusted_income": {
+      "type": "number",
+      "description": "Income adjusted for the calculation period"
+    },
+    "total_deductions": {
+      "type": "number",
+      "description": "Total of all applicable deductions"
+    },
     "taxable_income": {
       "type": "number",
       "description": "Income subject to tax after deductions"
     }
   },
+  "validate": [
+    {
+      "when": {
+        "and": [
+          { "income_type": { "eq": "BUSINESS" } },
+          { "$business_receipts": { "lte": 0 } }
+        ]
+      },
+      "error": "Business income type requires business receipts to be greater than zero."
+    },
+    {
+      "when": {
+        "$deductions": { "gt": "$gross_income" }
+      },
+      "error": "Total deductions cannot exceed gross income."
+    }
+  ],
   "filing_schedules": [
     {
       "name": "Quarterly Income Tax Filing",
       "frequency": "quarterly",
       "filing_day": "$$quarterly_filing_day",
-      "forms": {
-        "primary": "1701Q",
-        "attachments": [
-          "Schedule 1 (Quarterly Income Statement)"
-        ]
-      }
+      "forms": [
+        {
+          "when": { "income_type": { "eq": "EMPLOYEE" } },
+          "form": "1700Q",
+          "attachments": ["BIR Form 2316"]
+        },
+        {
+          "when": { "income_type": { "eq": "FREELANCE" } },
+          "form": "1701Q",
+          "attachments": ["Schedule 1 (Quarterly Income Statement)"]
+        },
+        {
+          "form": "1701Q",
+          "attachments": ["Schedule 1 (Quarterly Income Statement)", "Business Records"]
+        }
+      ]
     },
     {
       "name": "Annual Income Tax Filing",
@@ -198,13 +248,15 @@ A complete rule is a JSON object containing all the components needed for tax ca
           "gt": 0
         }
       },
-      "forms": {
-        "primary": "1701",
-        "attachments": [
-          "Schedule 1 (Background Information)",
-          "Schedule 2 (Itemized Deductions)"
-        ]
-      }
+      "forms": [
+        {
+          "form": "1701",
+          "attachments": [
+            "Schedule 1 (Background Information)",
+            "Schedule 2 (Itemized Deductions)"
+          ]
+        }
+      ]
     }
   ],
   "flow": [
@@ -228,18 +280,28 @@ A complete rule is a JSON object containing all the components needed for tax ca
       "operations": [
         {
           "type": "set",
-          "target": "taxable_income",
+          "target": "adjusted_income",
           "value": "cumulative_gross_income"
         },
         {
-          "type": "subtract",
-          "target": "taxable_income",
+          "type": "set",
+          "target": "total_deductions",
           "value": "$deductions"
+        },
+        {
+          "type": "add",
+          "target": "total_deductions",
+          "value": "$$standard_deduction"
+        },
+        {
+          "type": "set",
+          "target": "taxable_income",
+          "value": "adjusted_income"
         },
         {
           "type": "subtract",
           "target": "taxable_income",
-          "value": "$$standard_deduction"
+          "value": "total_deductions"
         },
         {
           "type": "set",
@@ -253,8 +315,8 @@ A complete rule is a JSON object containing all the components needed for tax ca
       "cases": [
         {
           "when": {
-            "is_freelance": {
-              "eq": true
+            "income_type": {
+              "eq": "FREELANCE"
             }
           },
           "operations": [
@@ -268,12 +330,20 @@ A complete rule is a JSON object containing all the components needed for tax ca
               "target": "liability",
               "value": "$$freelance_tax_rate"
             }
+          ],
+          "effects": [
+            {
+              "type": "excludes",
+              "target": "QUARTERLY_PAYMENT_VOUCHERS",
+              "description": "Freelancers using flat rate are exempt from quarterly payment vouchers",
+              "reference": "Revenue Memorandum Circular No. 84-2020"
+            }
           ]
         },
         {
           "when": {
-            "is_freelance": {
-              "eq": false
+            "income_type": {
+              "ne": "FREELANCE"
             }
           },
           "operations": [
@@ -319,6 +389,7 @@ A rule file contains these main sections:
 - **`tables`**: Progressive brackets and lookup data (detailed in [Tables](#44-tables))
 - **`inputs`**: Required taxpayer data (detailed in [Variables](#42-variables))
 - **`outputs`**: Calculated results (detailed in [Variables](#42-variables))
+- **`validate`**: Input validation and preconditions (detailed in [Validation](#55-validation))
 - **`filing_schedules`**: Due dates and forms (detailed in [Filing Schedules](#7-filing-schedules))
 - **`flow`**: Calculation sequence (detailed in [Operations](#10-operations))
 
@@ -345,13 +416,230 @@ Variables declared in the `inputs` and `outputs` sections use [JSON Schema](http
 - `minimum`/`maximum`: Numeric bounds
 - `enum`: List of allowed values
 - `pattern`: Regular expression for string validation
+- `when`: Optional condition that determines when the input is relevant (inputs only)
+
+#### Conditional Input Variables
+
+Input variables can include a `when` property to specify when they are relevant based on other inputs. This enables dynamic forms that only collect necessary information:
+
+```json
+{
+  "inputs": {
+    "income_type": {
+      "type": "string",
+      "enum": ["COMPENSATION", "BUSINESS", "MIXED"],
+      "description": "Type of income earned by the taxpayer"
+    },
+    "tax_rate_option": {
+      "type": "string",
+      "enum": ["GRADUATED", "FLAT_8_PERCENT"],
+      "description": "Tax rate option for business income",
+      "when": {
+        "or": [
+          { "income_type": { "eq": "BUSINESS" } },
+          { "income_type": { "eq": "MIXED" } }
+        ]
+      }
+    },
+    "deduction_method": {
+      "type": "string",
+      "enum": ["OSD", "ITEMIZED"],
+      "description": "Method for calculating allowable deductions",
+      "when": {
+        "and": [
+          { "or": [
+              { "income_type": { "eq": "BUSINESS" } },
+              { "income_type": { "eq": "MIXED" } }
+          ]},
+          { "tax_rate_option": { "eq": "GRADUATED" } }
+        ]
+      }
+    }
+  }
+}
+```
+
+**Conditional Input Rules:**
+- The `when` condition follows the same syntax as other conditional logic in the specification
+- Conditions can reference other input variables to create dependency chains
+- Variables with unsatisfied `when` conditions are considered optional and may be omitted
+- Circular dependencies between input conditions are not allowed
+- The evaluation order should be determined by dependency analysis
 
 **Declaration Rules:**
 - Variable names must not include prefixes (`$` or `$$`) in declarations
 - Names should use lowercase with underscores (`tax_exempt_threshold`)
 - Names must be unique within their section (inputs, outputs, constants)
 
+## 6.2. Validation and Preconditions {#55-validation}
 
+The `validate` section defines a set of conditions that must be satisfied for the rule to be applicable and execute correctly. These validations check input combinations against legal constraints and business rules before calculations begin.
+
+### 6.2.1. Validation Structure
+
+The `validate` section contains an array of validation rules, each with a condition and an associated error message:
+
+```json
+{
+  "validate": [
+    {
+      "when": {
+        "and": [
+          { "tax_rate_option": { "eq": "FLAT_8_PERCENT" } },
+          { "$gross_business_receipts": { "gt": "$vat_threshold" } }
+        ]
+      },
+      "error": "The 8% flat tax rate option is not available for taxpayers whose gross sales/receipts exceed the PHP 3,000,000 VAT threshold."
+    },
+    {
+      "when": {
+        "and": [
+          { "income_type": { "eq": "BUSINESS" } },
+          { "$gross_business_receipts": { "lte": 0 } }
+        ]
+      },
+      "error": "Business income type requires gross business receipts to be greater than zero."
+    }
+  ]
+}
+```
+
+### 6.2.2. Validation Rules
+
+**Condition Structure:**
+- The `when` property defines the condition that triggers the validation error
+- Uses the same conditional logic syntax as other parts of the specification
+- Can reference input variables, constants, and even calculated values from previous validations
+- Complex conditions can be built using `and`, `or`, and `not` operators
+
+**Error Messages:**
+- The `error` property provides a human-readable explanation of why the validation failed
+- Should clearly describe the legal or business constraint that was violated
+- Should provide actionable guidance when possible
+- Error messages are shown to users when validation fails
+
+### 6.2.3. Validation Execution
+
+**Timing:**
+- Validations are executed after inputs are collected but before the calculation flow begins
+- They run in the order defined in the `validate` array
+- If any validation fails, the entire rule execution stops with an error
+
+**Validation Processing:**
+- Each validation condition is evaluated as a boolean expression
+- If the condition evaluates to `true`, the validation fails and the error is raised
+- If the condition evaluates to `false`, the validation passes and execution continues
+- Validations with unsatisfied conditional input dependencies are skipped
+
+### 6.2.4. Common Validation Patterns
+
+**Threshold Constraints:**
+```json
+{
+  "when": {
+    "and": [
+      { "tax_option": { "eq": "SIMPLIFIED" } },
+      { "$annual_revenue": { "gt": "$$simplified_tax_threshold" } }
+    ]
+  },
+  "error": "Simplified tax option is only available for businesses with annual revenue not exceeding $$simplified_tax_threshold."
+}
+```
+
+**Mutual Exclusivity:**
+```json
+{
+  "when": {
+    "and": [
+      { "filing_status": { "eq": "MARRIED_FILING_SEPARATELY" } },
+      { "$spouse_income": { "gt": 0 } },
+      { "itemize_deductions": { "eq": true } }
+    ]
+  },
+  "error": "Married filing separately with spouse income cannot use itemized deductions unless both spouses itemize."
+}
+```
+
+**Required Field Dependencies:**
+```json
+{
+  "when": {
+    "and": [
+      { "has_dependents": { "eq": true } },
+      { "or": [
+          { "$number_of_dependents": { "lte": 0 } },
+          { "$dependent_exemption_amount": { "lte": 0 } }
+      ]}
+    ]
+  },
+  "error": "When claiming dependents, both number of dependents and exemption amount must be specified and greater than zero."
+}
+```
+
+### 6.2.5. Advanced Validation Features
+
+**Cross-Input Validation:**
+Validations can check relationships between multiple input fields:
+
+```json
+{
+  "when": {
+    "$total_deductions": { "gt": "$gross_income" }
+  },
+  "error": "Total deductions cannot exceed gross income."
+}
+```
+
+**Conditional Validations:**
+Validations can be applied only when certain conditions are met:
+
+```json
+{
+  "when": {
+    "and": [
+      { "income_type": { "eq": "RENTAL" } },
+      { "$rental_expenses": { "gt": "$rental_income" } },
+      { "$net_rental_loss": { "gt": "$$max_rental_loss_deduction" } }
+    ]
+  },
+  "error": "Rental loss deduction cannot exceed the maximum allowed limit of $$max_rental_loss_deduction."
+}
+```
+
+**Date and Period Validations:**
+```json
+{
+  "when": {
+    "and": [
+      { "$filing_period": { "eq": "Q1" } },
+      { "$payment_date": { "gt": "2024-04-15" } }
+    ]
+  },
+  "error": "Q1 payments must be made by April 15, 2024."
+}
+```
+
+### 6.2.6. Benefits of Explicit Validation
+
+**Legal Compliance:**
+- Ensures calculations only proceed with valid input combinations
+- Prevents incorrect tax calculations based on invalid assumptions
+- Provides clear documentation of legal constraints and eligibility requirements
+
+**User Experience:**
+- Provides immediate feedback on input errors before calculation
+- Clear error messages help users understand and correct mistakes
+- Reduces confusion about why certain options aren't available
+
+**System Integrity:**
+- Prevents runtime errors during calculation due to invalid inputs
+- Makes business rules explicit and enforceable
+- Enables better testing and quality assurance of tax rules
+
+**Auditability:**
+- Documents the constraints and requirements explicitly in the rule
+- Makes it clear what conditions must be met for the rule to apply
+- Provides a trail of validation decisions for audit purposes
 
 ## 7. Filing Schedules
 
@@ -395,18 +683,69 @@ Each filing schedule contains the following properties:
 
 ### Forms Object
 
-The `forms` object provides detailed information about the required documentation for tax filings:
+The `forms` property is an array of form objects that specify the required documentation for tax filings. Each form object can include an optional `when` clause for conditional form selection.
 
-#### Primary Form
-The `primary` field specifies the main tax form that must be filed. This is typically a government-issued form number that taxpayers need to complete and submit.
+#### Simple Forms
+For cases where only one form is required:
+
+```json
+"forms": [
+  {
+    "form": "1701Q",
+    "attachments": ["Schedule 1 (Income Statement)"]
+  }
+]
+```
+
+#### Conditional Forms
+For cases where form selection depends on taxpayer data, use `when` clauses:
+
+```json
+"forms": [
+  {
+    "when": { "income_type": { "eq": "COMPENSATION" } },
+    "form": "1700",
+    "attachments": ["BIR Form 2316 (Certificate of Compensation Payment/Tax Withheld)"]
+  },
+  {
+    "when": {
+      "and": [
+        { "income_type": { "eq": "BUSINESS" } },
+        { "or": [
+            { "tax_rate_option": { "eq": "FLAT_8_PERCENT" } },
+            { "deduction_method": { "eq": "OSD" } }
+        ]}
+      ]
+    },
+    "form": "1701A",
+    "attachments": ["Schedule of Itemized Deductions"]
+  },
+  {
+    "form": "1701",
+    "attachments": ["Complete Income Tax Return with all schedules"]
+  }
+]
+```
+
+**Conditional Forms Rules:**
+- Forms are evaluated in order, with the first matching condition determining the required forms
+- Forms without a `when` clause serve as the default and will always match
+- Default forms (without `when`) should typically be placed last in the array
+- Both `form` and `attachments` can be specified for each form object
+- Conditions follow the same syntax as other conditional logic in the specification
+
+#### Form Field
+The `form` field specifies the main tax form that must be filed. This is typically a government-issued form number that taxpayers need to complete and submit.
 
 **Examples:**
+- `"1700"`: Individual Income Tax Return for purely compensation income (Philippines)
 - `"1701Q"`: Quarterly Individual Income Tax Return (Philippines)
 - `"1701"`: Annual Individual Income Tax Return (Philippines)
+- `"1701A"`: Annual Individual Income Tax Return for specific taxpayer categories (Philippines)
 - `"1702Q"`: Quarterly Corporate Income Tax Return (Philippines)
 
 #### Attachments
-The `attachments` field is an array of supporting documents, schedules, or additional forms that must accompany the primary form. This can include:
+The `attachments` field is an array of supporting documents, schedules, or additional forms that must accompany the main form. This can include:
 
 - **Supporting schedules**: Additional computation sheets or detailed breakdowns
 - **Documentation requirements**: Receipts, certificates, or other supporting evidence
@@ -419,13 +758,20 @@ The `attachments` field is an array of supporting documents, schedules, or addit
     "name": "Quarterly Income Tax Filing",
     "frequency": "quarterly",
     "filing_day": 15,
-    "forms": {
-      "primary": "1701Q",
-      "attachments": [
-        "Schedule 1 (Quarterly Income Statement)",
-        "Schedule 7A (Creditable Withholding Tax)"
-      ]
-    }
+    "forms": [
+      {
+        "when": { "income_type": { "eq": "EMPLOYEE" } },
+        "form": "1700Q",
+        "attachments": ["BIR Form 2316"]
+      },
+      {
+        "form": "1701Q",
+        "attachments": [
+          "Schedule 1 (Quarterly Income Statement)",
+          "Schedule 7A (Creditable Withholding Tax)"
+        ]
+      }
+    ]
   },
   {
     "name": "Annual Income Tax Filing",
@@ -436,16 +782,22 @@ The `attachments` field is an array of supporting documents, schedules, or addit
         "gt": 0
       }
     },
-    "forms": {
-      "primary": "1701",
-      "attachments": [
-        "Schedule 1 (Background Information)",
-        "Schedule 2 (Itemized Deductions)",
-        "Schedule 7A (Creditable Withholding Tax)",
-        "Supporting receipts for deductions",
-        "Certificate of Compensation Payment (BIR Form 2316)"
-      ]
-    }
+    "forms": [
+      {
+        "when": { "income_type": { "eq": "EMPLOYEE" } },
+        "form": "1700",
+        "attachments": ["Certificate of Compensation Payment (BIR Form 2316)"]
+      },
+      {
+        "form": "1701",
+        "attachments": [
+          "Schedule 1 (Background Information)",
+          "Schedule 2 (Itemized Deductions)",
+          "Schedule 7A (Creditable Withholding Tax)",
+          "Supporting receipts for deductions"
+        ]
+      }
+    ]
   }
 ]
 ```
@@ -639,6 +991,187 @@ Cases in a `cases` array are evaluated in order. A case without a `when` clause 
 - Only one default case is allowed per `cases` array
 - If no conditions match and no default case exists, no operations are performed
 
+### 8.3. Case Effects and Tax Interactions
+
+Cases can include an optional `effects` property to document how selecting a particular calculation path affects other tax obligations or interacts with different parts of the tax system. This metadata is valuable for comprehensive tax compliance systems that need to understand cross-tax relationships.
+
+#### 8.3.1. Effects Declaration
+
+The `effects` property is an array of effect objects that describe the broader implications of a case:
+
+```json
+{
+  "when": { "tax_rate_option": { "eq": "FLAT_8_PERCENT" } },
+  "operations": [
+    {
+      "type": "set",
+      "target": "liability",
+      "value": "$gross_business_receipts"
+    },
+    {
+      "type": "multiply",
+      "target": "liability",
+      "value": 0.08
+    }
+  ],
+  "effects": [
+    {
+      "type": "replaces",
+      "target": "PERCENTAGE_TAX",
+      "description": "The 8% flat rate is in lieu of the 3% business percentage tax",
+      "reference": "Section 116 of the NIRC"
+    },
+    {
+      "type": "excludes",
+      "target": "VAT_REGISTRATION",
+      "description": "Taxpayers using 8% flat rate are not required to register for VAT",
+      "reference": "Revenue Regulations No. 16-2005"
+    }
+  ]
+}
+```
+
+#### 8.3.2. Effect Types
+
+The specification defines several standard effect types:
+
+**`replaces`**: Indicates this calculation replaces another tax obligation
+- Used when one tax is paid "in lieu of" another
+- Prevents double taxation in comprehensive systems
+- Common with alternative minimum tax scenarios
+
+**`excludes`**: Indicates this choice excludes the taxpayer from certain obligations
+- Used when selecting an option removes other requirements
+- Helps systems determine which forms/filings are not needed
+- Common with simplified tax regimes
+
+**`requires`**: Indicates this choice creates additional obligations
+- Used when selecting an option triggers other requirements
+- Helps systems identify all necessary compliance steps
+- Common with elections that have ongoing obligations
+
+**`affects`**: General effect type for other relationships
+- Used for effects that don't fit other categories
+- Provides a flexible mechanism for documenting interactions
+
+#### 8.3.3. Effect Properties
+
+**Required Properties:**
+- **`type`**: The type of effect (`replaces`, `excludes`, `requires`, `affects`)
+- **`target`**: Identifier for what is affected (tax type, obligation, etc.)
+
+**Optional Properties:**
+- **`jurisdiction`**: Geographic scope of the effect when different from the rule's jurisdiction (e.g., "federal", "state", "local")
+- **`description`**: Human-readable explanation of the effect
+- **`reference`**: Legal citation or regulatory reference
+- **`conditions`**: Additional conditions that must be met for the effect to apply
+- **`duration`**: How long the effect lasts (e.g., "CURRENT_YEAR", "INDEFINITE")
+
+#### 8.3.4. Advanced Effect Examples
+
+**Complex Replacement with Conditions:**
+```json
+{
+  "effects": [
+    {
+      "type": "replaces",
+      "target": "REGULAR_INCOME_TAX",
+      "description": "Alternative Minimum Tax replaces regular income tax when AMT is higher",
+      "reference": "Section 59-A of the NIRC",
+      "conditions": {
+        "amt_liability": { "gt": "regular_tax_liability" }
+      },
+      "duration": "CURRENT_YEAR"
+    }
+  ]
+}
+```
+
+**Multiple Related Effects:**
+```json
+{
+  "effects": [
+    {
+      "type": "requires",
+      "target": "QUARTERLY_PAYMENT",
+      "description": "Self-employed individuals must make quarterly payments",
+      "reference": "Section 75 of the NIRC"
+    },
+    {
+      "type": "requires",
+      "target": "ANNUAL_INFORMATION_RETURN",
+      "description": "Must file additional information return with supporting schedules"
+    },
+    {
+      "type": "excludes",
+      "target": "SIMPLIFIED_BOOKKEEPING",
+      "description": "Cannot use simplified bookkeeping methods"
+    }
+  ]
+}
+```
+
+#### 8.3.5. Implementation Guidelines
+
+**Usage in Tax Systems:**
+- Effects are metadata and do not participate in calculations
+- Systems can use effects to:
+  - Determine which other tax calculations to skip or require
+  - Generate comprehensive compliance checklists
+  - Validate that all related obligations are addressed
+  - Provide explanations to users about tax interactions
+
+**Documentation Benefits:**
+- Makes tax law relationships explicit and searchable
+- Helps tax professionals understand full compliance requirements
+- Provides audit trail for why certain taxes were or weren't calculated
+- Enables better integration between different tax systems
+
+**Cross-Jurisdictional Effects:**
+When an effect applies to a different jurisdiction than the rule itself, include the optional `jurisdiction` property:
+
+```json
+{
+  "effects": [
+    {
+      "type": "affects",
+      "target": "STATE_TAXABLE_INCOME",
+      "jurisdiction": "state",
+      "description": "Federal charitable deduction reduces state taxable income calculation",
+      "reference": "State Revenue Code Section 12.3"
+    }
+  ]
+}
+```
+
+**Standardization:**
+- Jurisdictions should develop standardized target identifiers (e.g., "PERCENTAGE_TAX", "VAT_REGISTRATION")
+- Effect types can be extended by specific implementations
+- References should follow consistent citation formats within a jurisdiction
+- Use jurisdiction only when the effect crosses jurisdictional boundaries
+
+#### 8.3.6. Benefits of Effect Documentation
+
+**Comprehensive Compliance:**
+- Ensures no tax obligations are overlooked
+- Helps identify when elections affect multiple tax types
+- Provides clear guidance on what's required vs. what's excluded
+
+**System Integration:**
+- Enables automated coordination between different tax calculation engines
+- Supports building complete tax compliance platforms
+- Facilitates validation that all obligations are properly handled
+
+**Legal Clarity:**
+- Documents complex "in lieu of" relationships that are common in tax law
+- Provides clear references to relevant legal authorities
+- Makes implicit tax law relationships explicit and machine-readable
+
+**User Education:**
+- Helps taxpayers understand the full implications of their choices
+- Provides context for why certain forms or payments are required
+- Reduces confusion about complex tax interactions
+
 ## 9. Expressions
 
 Expressions are strings used in conditional rules and operations to reference variables, call functions, or provide literal values. They are the primary mechanism for dynamic computation within a rule.
@@ -764,6 +1297,7 @@ Divides the target variable by a value.
   "value": "$$months_per_year"
 }
 ```
+
 
 
 
@@ -939,6 +1473,7 @@ Use conditional cases to handle different scenarios:
 ```
 
 **Note:** This example demonstrates best practices by using a default case (without `when`) for the else condition instead of explicitly checking the opposite condition (`gt`). This makes the rule more maintainable and easier to understand.
+
 
 ## 11. Standard Library
 

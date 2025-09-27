@@ -156,6 +156,10 @@
             },
             "pattern": {
               "type": "string"
+            },
+            "when": {
+              "$ref": "#/$defs/conditionalRule",
+              "description": "Optional condition determining when this input is relevant"
             }
           },
           "additionalProperties": true
@@ -184,6 +188,26 @@
         }
       },
       "additionalProperties": false
+    },
+    "validate": {
+      "type": "array",
+      "description": "Input validation and preconditions that must be satisfied before rule execution",
+      "items": {
+        "type": "object",
+        "required": ["when", "error"],
+        "additionalProperties": false,
+        "properties": {
+          "when": {
+            "$ref": "#/$defs/conditionalRule",
+            "description": "Condition that triggers validation error if true"
+          },
+          "error": {
+            "type": "string",
+            "description": "Human-readable error message explaining the validation failure",
+            "minLength": 1
+          }
+        }
+      }
     },
     "filing_schedules": {
       "type": "array",
@@ -221,19 +245,30 @@
             "description": "Optional condition determining when schedule applies"
           },
           "forms": {
-            "type": "object",
-            "required": ["primary"],
-            "additionalProperties": false,
-            "properties": {
-              "primary": {
-                "type": "string",
-                "description": "Main form number required for filing"
-              },
-              "attachments": {
-                "type": "array",
-                "description": "Supporting documents or additional forms",
-                "items": {
-                  "type": "string"
+            "type": "array",
+            "description": "Array of form objects specifying required documentation",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["form"],
+              "additionalProperties": false,
+              "properties": {
+                "when": {
+                  "$ref": "#/$defs/conditionalRule",
+                  "description": "Optional condition for conditional form selection"
+                },
+                "form": {
+                  "type": "string",
+                  "description": "Main form number required for filing",
+                  "minLength": 1
+                },
+                "attachments": {
+                  "type": "array",
+                  "description": "Supporting documents or additional forms",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
                 }
               }
             }
@@ -371,26 +406,67 @@
       ]
     },
     "conditionalRule": {
-      "type": "object",
-      "minProperties": 1,
-      "maxProperties": 1,
-      "patternProperties": {
-        ".*": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "and": {
+              "type": "array",
+              "description": "All conditions must be true",
+              "minItems": 2,
+              "items": { "$ref": "#/$defs/conditionalRule" }
+            }
+          },
+          "required": ["and"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "or": {
+              "type": "array",
+              "description": "At least one condition must be true",
+              "minItems": 2,
+              "items": { "$ref": "#/$defs/conditionalRule" }
+            }
+          },
+          "required": ["or"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "not": {
+              "$ref": "#/$defs/conditionalRule",
+              "description": "Negates the condition"
+            }
+          },
+          "required": ["not"],
+          "additionalProperties": false
+        },
+        {
           "type": "object",
           "minProperties": 1,
           "maxProperties": 1,
-          "properties": {
-            "eq": { "$ref": "#/$defs/expressionValue" },
-            "ne": { "$ref": "#/$defs/expressionValue" },
-            "gt": { "$ref": "#/$defs/expressionValue" },
-            "lt": { "$ref": "#/$defs/expressionValue" },
-            "gte": { "$ref": "#/$defs/expressionValue" },
-            "lte": { "$ref": "#/$defs/expressionValue" }
+          "patternProperties": {
+            ".*": {
+              "type": "object",
+              "minProperties": 1,
+              "maxProperties": 1,
+              "properties": {
+                "eq": { "$ref": "#/$defs/expressionValue" },
+                "ne": { "$ref": "#/$defs/expressionValue" },
+                "gt": { "$ref": "#/$defs/expressionValue" },
+                "lt": { "$ref": "#/$defs/expressionValue" },
+                "gte": { "$ref": "#/$defs/expressionValue" },
+                "lte": { "$ref": "#/$defs/expressionValue" }
+              },
+              "additionalProperties": false
+            }
           },
           "additionalProperties": false
         }
-      },
-      "additionalProperties": false
+      ]
     },
     "flowStep": {
       "type": "object",
@@ -427,6 +503,13 @@
                 "items": {
                   "$ref": "#/$defs/operation"
                 }
+              },
+              "effects": {
+                "type": "array",
+                "description": "Tax interactions and cross-obligation relationships",
+                "items": {
+                  "$ref": "#/$defs/effect"
+                }
               }
             }
           }
@@ -436,6 +519,47 @@
         { "required": ["operations"] },
         { "required": ["cases"] }
       ]
+    },
+    "effect": {
+      "type": "object",
+      "required": ["type", "target"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["replaces", "excludes", "requires", "affects"],
+          "description": "Type of effect on other tax obligations"
+        },
+        "target": {
+          "type": "string",
+          "description": "Identifier for what is affected (tax type, obligation, etc.)",
+          "minLength": 1
+        },
+        "jurisdiction": {
+          "type": "string",
+          "description": "Geographic scope when different from rule jurisdiction",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable explanation of the effect",
+          "minLength": 1
+        },
+        "reference": {
+          "type": "string",
+          "description": "Legal citation or regulatory reference",
+          "minLength": 1
+        },
+        "conditions": {
+          "$ref": "#/$defs/conditionalRule",
+          "description": "Additional conditions for the effect to apply"
+        },
+        "duration": {
+          "type": "string",
+          "description": "How long the effect lasts",
+          "enum": ["CURRENT_YEAR", "INDEFINITE", "CURRENT_PERIOD"]
+        }
+      }
     }
   }
 }
