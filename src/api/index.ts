@@ -65,7 +65,7 @@ function generateFilingSchedules(
   const expressionEvaluator = new ExpressionEvaluator();
   const conditionalEvaluator = new ConditionalEvaluator(expressionEvaluator);
 
-  for (const schedule of rule.filing_schedules) {
+  for (const schedule of rule.filing_schedules || []) {
     // Check if schedule applies (evaluate when condition if present)
     if (schedule.when) {
       const conditionResult = conditionalEvaluator.evaluate(
