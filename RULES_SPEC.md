@@ -29,7 +29,8 @@ This specification is primarily intended for **implementers and contributors** t
 7. [Filing Schedules](#7-filing-schedules)
 8. [Conditional Rules](#8-conditional-rules)
    - 8.1. [Operators](#81-operators)
-   - 8.1.1. [Logical Operator Syntax](#811-logical-operator-syntax)
+   - 8.1.1. [Comparison Value Evaluation](#811-comparison-value-evaluation)
+   - 8.1.2. [Logical Operator Syntax](#812-logical-operator-syntax)
    - 8.2. [Default Cases](#82-default-cases)
 9. [Expressions](#9-expressions)
 10. [Operations](#10-operations)
@@ -204,7 +205,7 @@ A complete rule is a JSON object containing all the components needed for tax ca
     {
       "when": {
         "and": [
-          { "income_type": { "eq": "BUSINESS" } },
+          { "$income_type": { "eq": "BUSINESS" } },
           { "$business_receipts": { "lte": 0 } }
         ]
       },
@@ -436,7 +437,7 @@ Input variables can include a `when` property to specify when they are relevant 
       "description": "Tax rate option for business income",
       "when": {
         "or": [
-          { "income_type": { "eq": "BUSINESS" } },
+          { "$income_type": { "eq": "BUSINESS" } },
           { "income_type": { "eq": "MIXED" } }
         ]
       }
@@ -448,7 +449,7 @@ Input variables can include a `when` property to specify when they are relevant 
       "when": {
         "and": [
           { "or": [
-              { "income_type": { "eq": "BUSINESS" } },
+              { "$income_type": { "eq": "BUSINESS" } },
               { "income_type": { "eq": "MIXED" } }
           ]},
           { "tax_rate_option": { "eq": "GRADUATED" } }
@@ -461,10 +462,18 @@ Input variables can include a `when` property to specify when they are relevant 
 
 **Conditional Input Rules:**
 - The `when` condition follows the same syntax as other conditional logic in the specification
-- Conditions can reference other input variables to create dependency chains
-- Variables with unsatisfied `when` conditions are considered optional and may be omitted
+- Conditions can reference other input variables using the `$` prefix (e.g., `$income_type`)
+- Variables with unsatisfied `when` conditions are **not required** and may be omitted from input
+- Variables with satisfied `when` conditions become **required** and must be provided
 - Circular dependencies between input conditions are not allowed
 - The evaluation order should be determined by dependency analysis
+
+**Implementation Behavior:**
+- Input validation occurs before rule processing begins
+- Conditional inputs are evaluated using a temporary context with provided inputs
+- If a `when` condition cannot be evaluated (e.g., references missing inputs), the input is assumed **required** for safety
+- Validation rules that reference conditional inputs will be skipped if those inputs are not available
+- This allows complex validation scenarios without breaking when optional inputs are omitted
 
 **Declaration Rules:**
 - Variable names must not include prefixes (`$` or `$$`) in declarations
@@ -485,8 +494,8 @@ The `validate` section contains an array of validation rules, each with a condit
     {
       "when": {
         "and": [
-          { "tax_rate_option": { "eq": "FLAT_8_PERCENT" } },
-          { "$gross_business_receipts": { "gt": "$vat_threshold" } }
+          { "$tax_rate_option": { "eq": "FLAT_8_PERCENT" } },
+          { "$gross_business_receipts": { "gt": "$$vat_threshold" } }
         ]
       },
       "error": "The 8% flat tax rate option is not available for taxpayers whose gross sales/receipts exceed the PHP 3,000,000 VAT threshold."
@@ -494,7 +503,7 @@ The `validate` section contains an array of validation rules, each with a condit
     {
       "when": {
         "and": [
-          { "income_type": { "eq": "BUSINESS" } },
+          { "$income_type": { "eq": "BUSINESS" } },
           { "$gross_business_receipts": { "lte": 0 } }
         ]
       },
@@ -529,7 +538,14 @@ The `validate` section contains an array of validation rules, each with a condit
 - Each validation condition is evaluated as a boolean expression
 - If the condition evaluates to `true`, the validation fails and the error is raised
 - If the condition evaluates to `false`, the validation passes and execution continues
-- Validations with unsatisfied conditional input dependencies are skipped
+- **Conditional Input Handling:** Validations that reference conditional inputs that are not available (due to unsatisfied `when` conditions) are automatically skipped
+- This prevents validation errors when optional inputs are legitimately omitted
+- If a validation condition cannot be evaluated for any reason, that validation is skipped to prevent false failures
+
+**Implementation Notes:**
+- Validation conditions use the literal-first comparison behavior (see [8.1.1](#811-comparison-value-evaluation))
+- Variables in validation conditions must use appropriate prefixes (`$` for inputs, `$$` for constants)
+- Validation errors are distinguished from other rule evaluation errors and are always propagated to the caller
 
 ### 6.2.4. Common Validation Patterns
 
@@ -710,7 +726,7 @@ For cases where form selection depends on taxpayer data, use `when` clauses:
   {
     "when": {
       "and": [
-        { "income_type": { "eq": "BUSINESS" } },
+        { "$income_type": { "eq": "BUSINESS" } },
         { "or": [
             { "tax_rate_option": { "eq": "FLAT_8_PERCENT" } },
             { "deduction_method": { "eq": "OSD" } }
@@ -830,12 +846,88 @@ The following operators can be used in conditional rules:
 - `gte`: Greater than or equal to
 - `lte`: Less than or equal to
 
+### 8.1.1. Comparison Value Evaluation
+
+**Important:** Comparison values in conditional expressions default to **literal values** rather than variable references or expressions. This prevents common errors and makes conditions more predictable.
+
+#### Literal Values (Default Behavior)
+
+Most comparison values are treated as literals:
+
+```json
+{
+  "when": {
+    "$income_type": {
+      "eq": "BUSINESS"  // Literal string "BUSINESS", not a variable
+    }
+  }
+}
+```
+
+```json
+{
+  "when": {
+    "$age": {
+      "gte": 18  // Literal number 18
+    }
+  }
+}
+```
+
+#### Expression Evaluation (Explicit)
+
+To evaluate a comparison value as an expression or variable reference, prefix it with `$` (for variables) or `=` (for explicit expressions):
+
+```json
+{
+  "when": {
+    "$income": {
+      "gt": "$$tax_threshold"  // Evaluates constant $$tax_threshold
+    }
+  }
+}
+```
+
+```json
+{
+  "when": {
+    "$total_income": {
+      "gt": "=$base_income"  // Evaluates calculated variable base_income
+    }
+  }
+}
+```
+
+#### Why Literal-First?
+
+This design prevents common mistakes where rule authors expect literal comparisons but accidentally reference variables:
+
+```json
+// ❌ Common mistake (old behavior):
+{
+  "when": {
+    "$filing_status": {
+      "eq": "MARRIED"  // Would try to find variable named "MARRIED"
+    }
+  }
+}
+
+// ✅ Correct (new behavior):
+{
+  "when": {
+    "$filing_status": {
+      "eq": "MARRIED"  // Correctly compares to literal "MARRIED"
+    }
+  }
+}
+```
+
 #### Logical Operators
 - `and`: Logical AND - all conditions must be true
 - `or`: Logical OR - at least one condition must be true
 - `not`: Logical NOT - negates the condition
 
-### 8.1.1. Logical Operator Syntax
+### 8.1.2. Logical Operator Syntax
 
 Logical operators allow you to combine multiple conditions to create complex conditional logic.
 
