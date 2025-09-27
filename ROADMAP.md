@@ -6,29 +6,20 @@ This document outlines the current status, deliberate design decisions, and futu
 
 ## Current Status
 
-The project is still in its early stages of development. Currently:
-- The first draft of the rules specification is done.
+The project has made significant progress beyond the initial specification phase. Currently:
+- The rules specification is complete and comprehensive.
 - An accompanying JSON schema has been created to validate the rules format.
-- Infrastructure for the development of the library is already setup.
+- Infrastructure for the development of the library is complete.
 - The expression parser and evaluator have been implemented.
+- The core rule evaluation engine is complete and supports all specification features.
+- The public API has been implemented with TypeScript types and comprehensive test coverage.
+- Period calculation and filing schedule generation are functional.
+
+The library is ready for use with basic tax calculations following the opentaxjs specification.
 
 ## Library Implementation Roadmap
 
-### 🚧 Rules Loading and Validation
-
-> **Status**: In progress. Core functionality for loading and validating rule files.
-
-**Current Progress**: Basic rule loading infrastructure and JSON schema validation.
-
-**Next Steps**: Complete rule file resolution, error handling, and validation reporting.
-
-### 🚧 Public API
-
-> **Status**: In progress. Implementing the API as outlined in the README.
-
-**Current Progress**: Core API structure and TypeScript interfaces defined.
-
-**Next Steps**: Complete calculation engine integration and result formatting.
+The initial implementation is already functional and covers the core features of the specification. Roadmap will be updated later as more features and improvements are identified.
 
 ## Specification Roadmap
 

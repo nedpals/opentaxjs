@@ -19,17 +19,20 @@ This project **DOES NOT** aim to:
 3. Handle complex tax scenarios that require legal or financial advice.
 
 ## Current Status
-The project is still in its early stages of development. Currently:
-- The first draft of the [rules specification](RULES_SPEC.md) is done.
-- An accompanying JSON schema ([draft-01.json](draft-01.json)) has also been created to validate the rules format.
-- Infrastructure for the development of the library is already setup.
+The project has made significant progress beyond the initial specification phase. Currently:
+- The [rules specification](RULES_SPEC.md) is complete and comprehensive.
+- An accompanying JSON schema ([draft-01.json](draft-01.json)) has been created to validate the rules format.
+- Infrastructure for the development of the library is complete.
 - The expression parser and evaluator have been implemented.
+- The core rule evaluation engine is complete and supports all specification features.
+- The public API has been implemented with TypeScript types and comprehensive test coverage.
+- Period calculation and filing schedule generation are functional.
 
-Still, I would love to get some help, particularly in the specification, to improve and to be able to cover the different tax types and scenarios under the current tax system before implementing the library.
+The library is ready for use with basic tax calculations following the opentaxjs specification.
 
 For more details on the direction of this project, please refer to [ROADMAP.md](ROADMAP.md)
 
-## Proposed API
+## API Usage
 
 ```typescript
 import opentax from 'opentaxjs';
@@ -51,7 +54,7 @@ console.log(incomeTax.liabilities);
 // ]
 
 // For mid-period employment scenarios
-const midYearIncome = opentax({ rule: "./bir/income_tax.json" }).calculate({
+const midYearIncome = opentax({ rule: incomeTaxRule }).calculate({
   gross_income: 500000,
   deductions: 100000,
   is_freelance: true
