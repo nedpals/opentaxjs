@@ -3,3 +3,4 @@ export * from './validator';
 export * from './types';
 export * from './evaluator';
 export * from './period';
+export { default } from './api';
