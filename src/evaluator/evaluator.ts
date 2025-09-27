@@ -1,4 +1,4 @@
-import type { Rule, EvaluationContext, Operation, FlowStep } from '@/types';
+import type { Rule, EvaluationContext, Operation, FlowStep, Table } from '@/types';
 import { RuleEvaluationError, OperationError } from './errors';
 import { OPERATION_REGISTRY } from './operations';
 import { ConditionalEvaluator } from './conditional';
@@ -90,7 +90,7 @@ export class RuleEvaluator {
     }
 
     // Create tables lookup
-    const tablesMap: Record<string, unknown> = {};
+    const tablesMap: Record<string, Table> = {};
     for (const table of rule.tables) {
       tablesMap[table.name] = table;
     }
