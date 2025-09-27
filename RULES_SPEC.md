@@ -1081,6 +1081,8 @@ sum($income1, $income2, $income3)
 max(taxable_income, 0)
 round(liability, 2)
 min(tax_rate, 0.25)
+lookup('income_tax_brackets', taxable_income)
+lookup('tax_table_2024', $gross_income)
 ```
 
 **Rules:**

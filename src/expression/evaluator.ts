@@ -15,6 +15,7 @@ export interface VariableContext {
   inputs: Record<string, number | boolean>;
   constants: Record<string, number | boolean>;
   calculated: Record<string, number | boolean>;
+  tables?: Record<string, any>;
 }
 
 export interface ExpressionEvaluatorConfig {
@@ -357,7 +358,7 @@ export class ExpressionEvaluator {
     }
 
     // Always pass context to the new callback signature
-    const result = func.callback(evaluatedParams, {});
+    const result = func.callback(evaluatedParams, { tables: context.tables });
 
     if (
       typeof result !== 'number' &&

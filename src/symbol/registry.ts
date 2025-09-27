@@ -15,7 +15,9 @@ export interface BuiltinSymbols {
   variables?: Record<string, number | boolean>;
 }
 
-export interface FunctionContext {}
+export interface FunctionContext {
+  tables?: Record<string, any>;
+}
 
 export interface FunctionDefinition {
   parameters: ParameterSchema[];
