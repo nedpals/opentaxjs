@@ -19,7 +19,7 @@ describe('ConditionalEvaluator', () => {
 
   describe('basic comparisons', () => {
     it('should evaluate equality conditions', () => {
-      const context = createContext({ age: 25, is_senior: false });
+      const context = createContext({}, {}, { age: 25, is_senior: false });
 
       expect(evaluator.evaluate({ age: { eq: 25 } }, context)).toBe(true);
       expect(evaluator.evaluate({ age: { eq: 30 } }, context)).toBe(false);
@@ -28,7 +28,7 @@ describe('ConditionalEvaluator', () => {
     });
 
     it('should evaluate inequality conditions', () => {
-      const context = createContext({ age: 25, is_senior: false });
+      const context = createContext({}, {}, { age: 25, is_senior: false });
 
       expect(evaluator.evaluate({ age: { ne: 30 } }, context)).toBe(true);
       expect(evaluator.evaluate({ age: { ne: 25 } }, context)).toBe(false);
@@ -36,7 +36,7 @@ describe('ConditionalEvaluator', () => {
     });
 
     it('should evaluate numeric comparison conditions', () => {
-      const context = createContext({ income: 50000, age: 25 });
+      const context = createContext({}, {}, { income: 50000, age: 25 });
 
       expect(evaluator.evaluate({ income: { gt: 40000 } }, context)).toBe(true);
       expect(evaluator.evaluate({ income: { gt: 60000 } }, context)).toBe(false);
@@ -70,7 +70,7 @@ describe('ConditionalEvaluator', () => {
     });
 
     it('should resolve variables in comparison values', () => {
-      const context = createContext({ income: 50000 }, { threshold: 45000 });
+      const context = createContext({}, { threshold: 45000 }, { income: 50000 });
 
       expect(evaluator.evaluate({ income: { gt: '$$threshold' } }, context)).toBe(true);
     });
@@ -78,7 +78,7 @@ describe('ConditionalEvaluator', () => {
 
   describe('logical operations', () => {
     it('should evaluate AND conditions', () => {
-      const context = createContext({ age: 25, income: 50000 });
+      const context = createContext({}, {}, { age: 25, income: 50000 });
 
       const condition: Condition = {
         and: [
@@ -100,7 +100,7 @@ describe('ConditionalEvaluator', () => {
     });
 
     it('should evaluate OR conditions', () => {
-      const context = createContext({ age: 25, income: 30000 });
+      const context = createContext({}, {}, { age: 25, income: 30000 });
 
       const condition: Condition = {
         or: [
@@ -122,7 +122,7 @@ describe('ConditionalEvaluator', () => {
     });
 
     it('should evaluate NOT conditions', () => {
-      const context = createContext({ is_senior: false });
+      const context = createContext({}, {}, { is_senior: false });
 
       const condition: Condition = {
         not: { is_senior: { eq: true } }
@@ -138,7 +138,7 @@ describe('ConditionalEvaluator', () => {
     });
 
     it('should evaluate nested logical conditions', () => {
-      const context = createContext({ age: 25, income: 50000, is_student: false });
+      const context = createContext({}, {}, { age: 25, income: 50000, is_student: false });
 
       const condition: Condition = {
         and: [
@@ -172,7 +172,7 @@ describe('ConditionalEvaluator', () => {
 
   describe('utility methods', () => {
     it('should evaluate all conditions with AND logic', () => {
-      const context = createContext({ age: 25, income: 50000 });
+      const context = createContext({}, {}, { age: 25, income: 50000 });
 
       const conditions: Condition[] = [
         { age: { gte: 18 } },
@@ -190,7 +190,7 @@ describe('ConditionalEvaluator', () => {
     });
 
     it('should evaluate any conditions with OR logic', () => {
-      const context = createContext({ age: 25, income: 30000 });
+      const context = createContext({}, {}, { age: 25, income: 30000 });
 
       const conditions: Condition[] = [
         { age: { gte: 65 } },
@@ -231,11 +231,11 @@ describe('ConditionalEvaluator', () => {
 
       expect(() => {
         evaluator.evaluate({ unknown_var: { eq: 100 } }, context);
-      }).toThrow("Variable 'unknown_var' not found");
+      }).toThrow("Calculated variable 'unknown_var' not found");
     });
 
     it('should throw error for invalid numeric comparisons', () => {
-      const context = createContext({ income: 50000 }, { is_active: false });
+      const context = createContext({}, { is_active: false }, { income: 50000 });
 
       expect(() => {
         evaluator.evaluate({ income: { gt: '$$is_active' } }, context);
@@ -252,7 +252,7 @@ describe('ConditionalEvaluator', () => {
     });
 
     it('should handle zero and negative numbers', () => {
-      const context = createContext({ balance: -100, age: 0 });
+      const context = createContext({}, {}, { balance: -100, age: 0 });
 
       expect(evaluator.evaluate({ balance: { lt: 0 } }, context)).toBe(true);
       expect(evaluator.evaluate({ age: { eq: 0 } }, context)).toBe(true);
@@ -260,7 +260,7 @@ describe('ConditionalEvaluator', () => {
     });
 
     it('should handle floating point numbers', () => {
-      const context = createContext({ rate: 0.15, amount: 1234.56 });
+      const context = createContext({}, {}, { rate: 0.15, amount: 1234.56 });
 
       expect(evaluator.evaluate({ rate: { gt: 0.1 } }, context)).toBe(true);
       expect(evaluator.evaluate({ amount: { eq: 1234.56 } }, context)).toBe(true);

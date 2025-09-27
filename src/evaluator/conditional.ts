@@ -47,9 +47,27 @@ export class ConditionalEvaluator {
     const varCondition = condition as {
       [variable: string]: ComparisonCondition;
     };
+
+    const variableContext = {
+      inputs: context.inputs,
+      constants: context.constants,
+      calculated: context.calculated,
+      tables: context.tables,
+    };
+
     for (const [varName, comparison] of Object.entries(varCondition)) {
-      const varValue = this.resolveVariableValue(varName, context);
-      return this.evaluateComparison(varValue, comparison, context);
+      const result = this.expressionEvaluator.evaluate(
+        varName,
+        variableContext
+      );
+
+      if (typeof result === 'string') {
+        throw new RuleEvaluationError(
+          `String values are not allowed in conditional expressions: '${result}'`
+        );
+      }
+
+      return this.evaluateComparison(result, comparison, context);
     }
 
     return false;
@@ -186,68 +204,4 @@ export class ConditionalEvaluator {
       throw error;
     }
   }
-
-  private resolveVariableValue(
-    varName: string,
-    context: EvaluationContext
-  ): number | boolean {
-    // First check if variable exists directly in calculated
-    if (varName in context.calculated) {
-      return context.calculated[varName];
-    }
-
-    // Then check if it exists in inputs
-    if (varName in context.inputs) {
-      return context.inputs[varName];
-    }
-
-    // Then check if it exists in constants
-    if (varName in context.constants) {
-      return context.constants[varName];
-    }
-
-    // If not found directly, try to evaluate as expression with prefixes
-    try {
-      const variableContext = {
-        inputs: context.inputs,
-        constants: context.constants,
-        calculated: context.calculated,
-      };
-
-      const result = this.expressionEvaluator.evaluate(
-        varName,
-        variableContext
-      );
-
-      if (typeof result === 'string') {
-        throw new RuleEvaluationError(
-          `String values are not allowed in conditional expressions: '${result}'`
-        );
-      }
-
-      return result;
-    } catch (error) {
-      if (error instanceof ExpressionEvaluationError) {
-        // Provide a based on variable prefix
-        if (varName.startsWith('$$')) {
-          throw new RuleEvaluationError(
-            `Constant '${varName.slice(2)}' not found`
-          );
-        } else if (varName.startsWith('$')) {
-          throw new RuleEvaluationError(
-            `Input variable '${varName.slice(1)}' not found`
-          );
-        } else {
-          throw new RuleEvaluationError(`Variable '${varName}' not found`);
-        }
-      }
-      throw error;
-    }
-  }
 }
-
-// Export a default instance for convenience
-// Create a default conditional evaluator instance
-export const conditionalEvaluator = new ConditionalEvaluator(
-  new ExpressionEvaluator()
-);

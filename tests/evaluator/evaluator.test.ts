@@ -158,7 +158,7 @@ describe('RuleEvaluator', () => {
             cases: [
               {
                 when: {
-                  is_senior: { eq: true }
+                  '$is_senior': { eq: true }
                 },
                 operations: [
                   {
@@ -170,7 +170,7 @@ describe('RuleEvaluator', () => {
               },
               {
                 when: {
-                  is_senior: { eq: false }
+                  '$is_senior': { eq: false }
                 },
                 operations: [
                   {
